@@ -1,47 +1,251 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get started with Engineering Docs in minutes"
+sidebarTitle: "Quickstart"
+description: "Install the engineering-docs npm plugin, pick your agent platform, and generate your first professional documentation set from a raw project idea."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
+Engineering Docs installs with a single `npx` command and is ready to use the moment your agent session starts. This page walks you through installing the plugin for your agent of choice, understanding the interactive installer menu, and triggering the orchestrator skill with your first project idea.
 
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+---
 
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+## Install the plugin
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
 
-    ```bash
-    npm install your-package
-    ```
-  </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
+### Run the installer
 
-    ```bash
-    your-cli init
-    ```
-  </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+Open your terminal and run:
 
-    ```bash
-    your-cli start
-    ```
-  </Step>
+```bash install
+npx engineering-docs
+```
+
+The installer banner appears immediately and presents an interactive menu listing all supported agent platforms.
+
+### Choose your target agent
+
+The interactive menu lists 14 platforms. Enter the number for your agent:
+
+```text Interactive Menu
++-------------------------------------------------+
+|                                                 |
+|     ENGINEERING DOCUMENTATION PLUGIN            |
+|        Auto-Trigger Skill Installer             |
+|              v1.2.2 - 22 Skills                 |
+|                                                 |
++-------------------------------------------------+
+
+Select where you want to install the engineering-docs plugin:
+
+  [1]  Gemini (Antigravity) - Global
+  [2]  Claude Code - Global
+  [3]  Local .agents/ (Antigravity/Claude/Codex)
+  [4]  Cursor / Windsurf - Local (.cursor/rules/)
+  [5]  Kimi Code - Global
+  [6]  Codex - Local (.codex/)
+  [7]  Copilot CLI - Global
+  [8]  Goose - Global
+  [9]  Pi - Global
+  [10] OpenCode - Local (.opencode/)
+  [11] Kilo Code - Global
+  [12] Roo Code - Global
+  [13] Cline - Local (.clinerules)
+  [14] Factory Droid - Global
+
+  [Q]  Quit
+```
+
+The installer copies all 22 skills, 4 custom agents, hooks, MCP config, and utility scripts to the platform-specific directory.
+
+### Reload your agent
+
+After installation completes, reload your agent or restart the CLI session to activate the new skills. For Cursor and Windsurf, a full restart is required to pick up the new `.mdc` rule files.
+
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+---
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+## Flag-based install (skip the menu)
+
+If you already know your platform, pass a flag to install directly without the interactive prompt:
+
+<CodeGroup>
+
+```bash Claude Code
+npx engineering-docs --claude
+# Installs to: ~/.claude/plugins/engineering-docs/
+```
+
+```bash Gemini CLI
+npx engineering-docs --gemini
+# Installs to: ~/.gemini/config/plugins/engineering-docs/
+```
+
+```bash Cursor / Windsurf
+npx engineering-docs --cursor
+# Extracts each skill to: .cursor/rules/engineering-docs-<skill>.mdc
+```
+
+```bash Copilot CLI
+npx engineering-docs --copilot
+# Installs to: ~/.copilot/plugins/engineering-docs/
+```
+
+```bash Cline
+npx engineering-docs --cline
+# Writes: .clinerules to your project root
+```
+
+```bash Goose
+npx engineering-docs --goose
+# Installs to: ~/.config/goose/extensions/engineering-docs/
+```
+
+```bash Codex
+npx engineering-docs --codex
+# Installs to: .codex/engineering-docs/
+```
+
+```bash OpenCode
+npx engineering-docs --opencode
+# Installs to: .opencode/engineering-docs/
+```
+
+</CodeGroup>
+
+<Tip>
+All agent config files (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `COPILOT.md`, `GOOSE.md`, `PI.md`) use **safe-write**: if a config file already exists at the destination, the installer skips it and logs `skipped <file> (already exists - your customization preserved)`. Your custom instructions are never overwritten.
 </Tip>
+
+---
+
+## Platform-specific install commands
+
+Some agent platforms have their own install mechanisms outside of `npx`:
+
+| Agent | Native Install Command |
+|:---|:---|
+| **Claude Code** | `/plugin install engineering-docs@claude-plugins-official` |
+| **Gemini CLI** | `gemini extensions install https://github.com/fattain-naime/engineering-docs` |
+| **Kimi Code** | `/plugins install https://github.com/fattain-naime/engineering-docs` |
+| **Pi** | `pi install git:github.com/fattain-naime/engineering-docs` |
+| **Kilo Code** | Install from Kilo Code plugin marketplace |
+| **Roo Code** | Install from Roo Code plugin marketplace |
+
+---
+
+## Run your first skill
+
+Once the plugin is loaded, give your agent a project idea in plain language — the orchestrator skill (`using-engineering-docs`) activates automatically and takes it from there.
+
+<Steps>
+
+### Give the orchestrator a raw idea
+
+You don't need to name any skill. Just describe what you want to build:
+
+```text Example prompt
+I want to build a subscription-based habit tracker app. I don't know 
+what documents I need — just help me figure out and write whatever's 
+necessary to start building it.
+```
+
+Or even shorter:
+
+```text Minimal prompt
+I want to build a custom gift-box e-commerce site where customers 
+pick items and the site auto-recommends pairings.
+```
+
+### Answer the interview questions
+
+The orchestrator runs a structured interview using tool calls — one question at a time, with multiple-choice options and an "I don't know, you decide" escape hatch on every question. Topics covered include:
+
+- Team size and skill level
+- Hosting and infrastructure preference
+- Budget sensitivity
+- Timeline urgency
+- Regulatory or compliance requirements
+- Existing systems to integrate with or avoid
+
+After the standing constraints, it asks business-concept questions: what's being built, who it's for, why someone would choose it, and what the minimum useful version looks like.
+
+### Review the sequencing plan
+
+The orchestrator presents the list of documents it plans to generate and their order, along with a one-line reason for any conditional skill included or excluded. You can redirect at this point ("skip the design system — we're API-only") before generation begins.
+
+### Watch documents generate
+
+The orchestrator invokes each skill in sequence. After each document it reports progress:
+
+```text Progress report (example)
+Document 3 of 11 complete: technical-specification
+Status: draft (awaiting your review)
+Next up: system-architecture-document
+```
+
+Review each document before the next one starts. You can request changes — the orchestrator applies them, re-runs a consistency check, and continues.
+
+</Steps>
+
+---
+
+## What gets created
+
+All output lands in a `.engineering-docs/` folder at your project root. The structure follows the document sequence:
+
+```text .engineering-docs/
+.engineering-docs/
+├── index.md                          ← Master index — reading order + status of every doc
+├── 1-business-plan.md
+├── 2-project-plan.md
+├── 3-user-personas.md
+├── 4-feasibility-study.md            ← Only if a risky technical approach was identified
+├── 5-technical-specification.md
+├── 6-ux-flow-specification.md        ← Only if the project has a UI
+├── 7-system-architecture.md
+├── 8-database-design.md              ← Only if structured data is persisted
+├── 9-api-design.md                   ← Only if there's an API surface
+├── 10-admin-access-control.md        ← Only if multiple privilege levels exist
+├── 11-security-threat-model.md       ← Only if accounts, payments, or PII are involved
+├── 12-design-system.md               ← Only if there's a UI component library
+├── 13-blueprint-<feature>.md         ← One per non-trivial feature
+├── 14-implementation-plan.md
+├── 15-test-strategy.md
+├── 16-deployment-plan.md
+├── 17-technical-runbook.md           ← Only if running in production
+├── 18-disaster-recovery.md           ← Only if downtime has real business cost
+├── 19-slo-error-budget.md            ← Only if real users depend on uptime
+└── adr/
+    └── 0001-<decision-slug>.md       ← ADRs accumulate throughout the project
+```
+
+<Tip>
+**Greenfield vs. brownfield detection is automatic.** If a `.engineering-docs/` folder with an `index.md` already exists, or if your prompt mentions "add a feature," "extend," or "modify," the orchestrator enters **Mode B (brownfield)** — it reads your existing documents first and only runs the skills relevant to the change, never overwriting prior history. New documents are appended to the sequence.
+</Tip>
+
+---
+
+## Use a single skill directly
+
+Every skill is independently callable. If you already have partial documentation and just need one artifact, invoke a skill by name:
+
+```text Direct skill invocation (example)
+Run the security-threat-model skill on our existing system. 
+The architecture is documented in .engineering-docs/7-system-architecture.md.
+```
+
+Standalone mode skips the full orchestration pipeline and runs only the interview and generation for that one skill.
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="How It Works" icon="gears" href="/how-it-works">
+    Explore the six-phase pipeline, greenfield vs. brownfield detection, and how context loading eliminates repeated questions.
+  </Card>
+  <Card title="Introduction" icon="book" href="/introduction">
+    See the complete skills library, custom agents, and full platform compatibility table.
+  </Card>
+</CardGroup>

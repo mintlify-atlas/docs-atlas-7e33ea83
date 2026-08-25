@@ -1,0 +1,253 @@
+---
+title: "design-system-specification skill: design tokens, components, and accessibility"
+sidebarTitle: "Design System"
+description: "Generate a production design system: layered design tokens, typography scale, 8px grid spacing, 13 component specs, WCAG 2.2 contrast verification, motion design, and dark/light mode rules."
+---
+
+The **design-system-specification** skill produces a rigorous visual language specification that defines the complete design system for a web project before frontend development begins. It applies Atomic Design principles, W3C Design Token layering (primitive → semantic → component), and WCAG 2.2 accessibility rules to create a consistent, implementable design system. The output provides exact CSS custom property definitions, component state matrices, responsive behavior rules, and motion design tokens that developers and AI coding agents can use directly.
+
+<Info>
+| Property | Value |
+| :--- | :--- |
+| **Type** | Workflow |
+| **Estimated time** | 4–8 hours |
+| **Standards** | Atomic Design, W3C Design Tokens, WCAG 2.2 Level AA, 8px grid |
+| **Output file** | `.engineering-docs/10-design-system-specification.md` |
+| **Conditional?** | Skip for API-only backends, internal CLI tools, or projects with no user-facing UI |
+</Info>
+
+<Note>
+**This skill is conditional.** Skip it for purely backend services, API-only projects, or internal CLI tools with no visual interface. If the project has any user-facing screens — even an admin panel — this skill applies.
+</Note>
+
+## Best for
+
+- Designing the visual system and style guide for a new web application
+- Establishing a consistent design language across multiple sub-brands or pages
+- Creating a robust utility system (CSS custom properties) for developers and AI coding agents
+- Standardizing typography, spacing rules, and WCAG accessibility targets
+- Defining iconography, motion design, and responsive component behavior
+
+## What it produces
+
+The generated document covers:
+
+1. **Design system overview** — brand personality, design principles (Atomic hierarchy, 8px grid, dark mode parity, accessibility)
+2. **Design token architecture** — three-layer model: primitive tokens → semantic tokens → component tokens; theming mechanism (CSS class / data attribute / media query)
+3. **Color palette** — brand colors table (light + dark mode values, contrast ratio, semantic purpose), neutral scale (9–11 grays), utility colors (info/warning/success/error)
+4. **Typography** — font family choices, font loading strategy (`font-display`, preloading, fallback stacks), fluid type scale using `clamp()` (Display H1 through Code), line length, modular scale ratio
+5. **Spacing system** — 8px grid scale as CSS custom properties (`--space-1` through `--space-16`), component spacing table
+6. **Border radius and shadows** — radius scale (sm/md/lg/pill), shadow scales for light and dark mode
+7. **z-index system** — named layers (`--z-base` through `--z-toast: 700`), `isolation: isolate` guidance
+8. **Iconography** — icon set selection (e.g., Lucide, Phosphor, Heroicons), sizing grid (8/16/24/32px), stroke width consistency, SVG vs. icon font decision
+9. **Imagery guidelines** — photography style, illustration style, placeholder/empty-state image patterns
+10. **Motion design** — timing curves (`ease-out`, `ease-in`, `ease-in-out` as cubic-bezier values), duration scale, micro-interactions per element, loading animation patterns, `prefers-reduced-motion` fallbacks
+11. **UI component library** — 13 required components: Buttons, Form Inputs, Cards, Badges, Tables, Modals, Navigation, Dropdowns, Tooltips, Tabs, Accordion, Alerts, Toast Notifications; each with all interactive states and responsive behavior
+12. **Component state matrix** — Default, Hover, Active, Focus-Visible, Disabled, Error, Loading — for every interactive component
+13. **Layout, responsive, and accessibility rules** — grid system, breakpoints (mobile/tablet/desktop/wide), responsive component behavior per breakpoint, WCAG 2.2 checklist
+14. **Component state reference** — per data-fetching component: Loading state, Empty state, Error state
+15. **Alternatives considered**
+
+## How to invoke it
+
+<CodeGroup>
+```bash Claude Code
+claude "Design the visual identity and design system for our new checkout portal" --skill design-system-specification
+```
+
+```bash Gemini CLI
+gemini "Create a style guide for a developer-focused analytics dashboard" --skill design-system-specification
+```
+
+```bash Generic (npx)
+npx engineering-docs design-system-specification "Build a full component library spec with tables, modals, navigation, and tooltips"
+```
+</CodeGroup>
+
+<Tip>
+Provide a brand seed color (even a single hex value), brand personality keywords (e.g., "secure and professional" or "developer-centric, dark mode first"), and the key UI components you need (tables, checkout forms, charts). The more context you give, the more complete the palette derivation and component list.
+</Tip>
+
+## Example scenarios
+
+<CardGroup cols={2}>
+  <Card title="Checkout portal" icon="credit-card">
+    "Design the visual identity and design system for our new checkout portal — professional, secure feel, light mode primary, with form, modal, and badge components."
+  </Card>
+  <Card title="Analytics dashboard" icon="chart-line">
+    "Create a style guide for a developer-focused analytics dashboard — dark mode first, monochrome with a tech-blue accent, heavy data table and chart usage."
+  </Card>
+  <Card title="Marketing website" icon="globe">
+    "Design the typography and token layout for a clean marketing website — warm, approachable brand with a hero section, feature cards, and pricing table."
+  </Card>
+  <Card title="Admin panel" icon="sliders">
+    "Full component library spec for our internal admin panel — tables, status badges, modals, navigation sidebar, and confirmation dialogs."
+  </Card>
+</CardGroup>
+
+## Key concepts
+
+<Accordion title="Three-layer token architecture — never hardcode colors">
+| Layer | Purpose | Example |
+| :--- | :--- | :--- |
+| **Primitive** | Raw values, no semantic meaning | `--blue-500: #3B82F6`, `--gray-900: #111827` |
+| **Semantic** | Mapped to purpose, changes per theme | `--color-text-primary: var(--gray-900)` |
+| **Component** | Component-specific overrides | `--button-bg: var(--color-bg-interactive)` |
+
+Every color used in a component must reference a semantic token, never a raw hex value. This is what makes dark mode a token-swap rather than a full rewrite. The skill enforces this architecture throughout all component definitions.
+</Accordion>
+
+<Accordion title="WCAG 2.2 — contrast ratios verified for both themes">
+- Normal text: minimum **4.5:1** contrast ratio against its background (Level AA)
+- Large text (18pt+ / 24px+): minimum **3:1** ratio
+- Interactive elements: visible, high-contrast focus outline (non-optional)
+- Touch targets on mobile: minimum **44×44px** (WCAG 2.2 Target Size)
+
+The skill verifies contrast ratios for both light and dark mode independently. A palette that passes in light mode can fail catastrophically in dark mode.
+</Accordion>
+
+<Accordion title="8px grid — no arbitrary spacing values">
+```css
+--space-1:  4px;   /* Minor adjustment */
+--space-2:  8px;   /* Tiny spacing */
+--space-3:  12px;  /* Compact */
+--space-4:  16px;  /* Standard increment */
+--space-6:  24px;  /* Medium card padding */
+--space-8:  32px;  /* Section spacing */
+--space-12: 48px;  /* Large container margins */
+--space-16: 64px;  /* Hero element margins */
+```
+
+All padding, margin, gap, and sizing values align to this scale. Random values like `13px`, `27px`, or `41px` create visual inconsistency and unpredictable layout math.
+</Accordion>
+
+<Accordion title="Motion design — purposeful and reduced-motion safe">
+```css
+--ease-out:     cubic-bezier(0.0, 0.0, 0.2, 1);    /* Entrances */
+--ease-in:      cubic-bezier(0.4, 0.0, 1, 1);        /* Exits */
+--ease-in-out:  cubic-bezier(0.4, 0, 0.2, 1);        /* State changes */
+
+--duration-fast:   100ms;  /* Micro-interactions */
+--duration-normal: 200ms;  /* Hover states */
+--duration-slow:   300ms;  /* Modal open/close */
+```
+
+All animations must respect `prefers-reduced-motion: reduce` — every animation needs a reduced-motion fallback. Animations are not decoration: they communicate state changes and guide attention.
+</Accordion>
+
+<Accordion title="z-index management — named layers, no magic numbers">
+| Token | Value | Usage |
+| :--- | :--- | :--- |
+| `--z-base` | 0 | Default stacking |
+| `--z-dropdown` | 100 | Dropdown and select menus |
+| `--z-sticky` | 200 | Sticky headers, fixed nav |
+| `--z-modal-backdrop` | 300 | Modal overlay/dimming |
+| `--z-modal` | 400 | Modal content |
+| `--z-popover` | 500 | Popovers, floating panels |
+| `--z-tooltip` | 600 | Tooltips |
+| `--z-toast` | 700 | Toast notifications |
+
+Using `isolation: isolate` on components that create stacking contexts prevents z-index bleed between component trees.
+</Accordion>
+
+<Accordion title="13 required components — all interactive states">
+Each component in the library must specify all states: **Default, Hover, Active, Focus-Visible, Disabled, Error, Loading** — plus responsive behavior (how it adapts at each breakpoint).
+
+Required components: Buttons (primary/secondary/ghost/destructive), Form Inputs (text/select/checkbox/radio/textarea), Cards & Data Containers, Badges & Status Indicators, Tables (with sortable headers + mobile behavior), Modals & Dialogs, Navigation (top bar/sidebar/breadcrumbs), Dropdowns & Select Menus, Tooltips & Popovers, Tabs, Accordion/Collapse, Alerts & Banners, Toast Notifications.
+</Accordion>
+
+<Accordion title="Responsive component behavior — document per breakpoint">
+| Component | Mobile | Tablet | Desktop |
+| :--- | :--- | :--- | :--- |
+| Data Table | Card-based rows or horizontal scroll + sticky first column | Horizontal scroll | Full table |
+| Navigation | Hamburger or bottom tab bar | Condensed or hamburger | Full horizontal nav |
+| Modal | Full-screen sheet, slide up from bottom | Centered, 90vw max | Centered, fixed max-width |
+| Sidebar | Hidden, overlay on trigger | Collapsed to icons | Full expanded |
+| Multi-col Grid | 1 column | 2 columns | 3–4 columns |
+</Accordion>
+
+## Interview process
+
+<Steps>
+  <Step title="Phase 1: Socratic clarification (mandatory)">
+    Reads all prior `.engineering-docs/` files. Up to 3 questions: brand tone and emotion (authoritative/developer-centric/creative), brand seed colors or hex values, and key UI components needed (checkout forms, data tables, charts).
+  </Step>
+  <Step title="Phase 2: Design token definition">
+    Four sub-steps: (1) Derive full color palette from brand seed colors for both modes; (2) Generate typography scale using a modular scale ratio; (3) Validate spacing against the 8px grid; (4) Verify WCAG contrast ratios for all text-bearing tokens in both modes.
+  </Step>
+  <Step title="Phase 3: Component specifications">
+    Define visual layout, all interactive states, and HTML/CSS patterns for all 13 required components. Include responsive behavior and dark mode adjustments per component.
+  </Step>
+  <Step title="Phase 4: Layout and interaction rules">
+    Grid system, container queries (if applicable), responsive reflow, standard interaction patterns (form submission flow, navigation transitions, data loading), motion tokens applied to component transitions, and final WCAG pass.
+  </Step>
+  <Step title="Phase 5: Revision (after user review)">
+    Apply changes, cascade through design tokens and component specs, re-verify WCAG contrast and 8px grid alignment, update `last_updated`.
+  </Step>
+</Steps>
+
+## Output structure
+
+The generated `.engineering-docs/10-design-system-specification.md` follows this structure:
+
+```
+1.  Design System Overview (brand identity + design principles)
+2.  Design Token Architecture (3-layer model + theming mechanism)
+3.  Color Palette (brand colors, neutral scale, utility colors)
+4.  Typography (font families, loading strategy, fluid type scale)
+5.  Spacing System (8px grid scale, component spacing table)
+6.  Border Radius and Shadows (light + dark mode shadow scales)
+7.  z-index System (named layers)
+8.  Iconography (library, sizing grid, color rules)
+9.  Imagery Guidelines (photography, illustration, placeholders)
+10. Motion Design (timing curves, duration scale, micro-interactions, reduced motion)
+11. UI Component Library (all 13 components, all states)
+12. Layout, Responsive, and Accessibility Rules
+13. Component State Reference (loading/empty/error per data component)
+14. Alternatives Considered
+```
+
+**Target length:** 8–15 pages excluding appendices.
+
+## Handoff
+
+<CardGroup cols={2}>
+  <Card title="Reads from" icon="arrow-down">
+    - `1-business-plan.md` — brand identity, target audience, positioning
+    - `3-user-personas.md` — user expectations, accessibility needs
+    - `12-security-threat-model.md` — security UX requirements (auth flows, error states)
+  </Card>
+  <Card title="Feeds into" icon="arrow-up">
+    - `14-technical-blueprint.md` — design tokens and component specs referenced in feature designs
+    - `15-implementation-plan.md` — design system setup as an early build phase
+    - Frontend implementation — CSS custom properties and component HTML patterns used directly
+  </Card>
+</CardGroup>
+
+## Quality gate
+
+- [ ] Every color token has both light and dark mode values defined, and contrast ratios are verified for all text-bearing tokens
+- [ ] All spacing, padding, and margin values align to the 8px grid (or documented 4px sub-grid for fine adjustments)
+- [ ] Every interactive component specifies all states: Default, Hover, Active, Focus-Visible, Disabled, Error, and Loading
+- [ ] Focus indicator styles are defined for all interactive elements with sufficient contrast in both light and dark backgrounds
+- [ ] The typography scale is complete with size, weight, line height, and semantic purpose for each level
+- [ ] Icon set is selected, sizing grid defined (8/16/24/32px), and stroke width is consistent
+- [ ] z-index scale is defined with named layers and no raw numeric values in any component
+- [ ] Font loading strategy is documented (`font-display`, preloading, fallback stacks)
+- [ ] Every data-fetching component has Loading, Empty, and Error states defined
+- [ ] Responsive behavior is documented for tables, navigation, modals, and multi-column layouts
+- [ ] Motion design tokens are defined with `prefers-reduced-motion` fallbacks for every animation
+- [ ] Design token architecture is layered (primitive → semantic → component) with documented inheritance
+
+<Warning>
+**Common gotchas:**
+
+- Hardcoding hex values in components instead of semantic tokens — dark mode becomes a full rewrite instead of a token swap
+- Skipping contrast ratio verification for dark mode — a palette passing in light mode can fail catastrophically in dark mode
+- Spacing values that break the 8px grid (`13px`, `27px`) — visual inconsistency and unpredictable layout math
+- Omitting focus indicator styles — removes keyboard navigation for accessibility users
+- Specifying only Default and Hover states — missing Active, Focus, Disabled, Error, and Loading forces developers to improvise
+- Ignoring font loading performance — `font-display: block` causes invisible text (FOIT)
+- Using raw z-index values (`z-index: 9999`) instead of named layers — creates stacking conflicts
+- Forgetting `prefers-reduced-motion` — animations without fallbacks cause vestibular discomfort for some users
+</Warning>

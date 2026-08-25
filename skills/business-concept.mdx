@@ -1,0 +1,169 @@
+---
+title: "business-concept skill: define your product idea and value proposition"
+sidebarTitle: "Business Concept"
+description: "Turn a raw project idea into a structured business concept document covering problem, target users, value proposition, monetization, scope, and standing constraints."
+---
+
+The `business-concept` skill is Phase 0 of the Engineering Docs pipeline — the foundational document every downstream technical skill reads from. Give it your idea in any form and it conducts a structured interview to produce a complete business concept document: problem statement, target users, competitive landscape, market sizing, value proposition, monetization model, scope boundaries, success criteria, and the standing constraints that every later document (architecture, security, deployment) will inherit. Nothing technical is assumed or decided until this document exists.
+
+## At a Glance
+
+| Property | Value |
+|:---|:---|
+| **Type** | Workflow |
+| **Output file** | `.engineering-docs/1-business-plan.md` |
+| **Estimated time** | 60–90 minutes |
+| **Depends on** | Nothing — this is Phase 0 |
+| **Target length** | 3–5 pages (excluding appendices) |
+
+## Best For
+
+- Turning a vague idea into a concrete business concept before technical planning begins
+- Establishing the foundational document that all technical specs reference
+- Ensuring the "why" is documented before the "how"
+- Aligning stakeholders on what's being built and why before committing to technical decisions
+
+## How to Invoke It
+
+<CodeGroup>
+```bash Claude Code
+engineering-docs:business-concept I want to build an app that helps restaurants manage reservations. Help me figure out the business side first.
+```
+
+```bash Gemini CLI
+@engineering-docs business-concept A marketplace for freelance designers — I need to document what this is before we start building.
+```
+
+```bash Generic / any agent
+business-concept [your project idea, in your own words]
+```
+</CodeGroup>
+
+<Note>
+`business-concept` is automatically invoked as Phase 0 when you use `using-engineering-docs`. Call it directly only when you already have partial documentation and want to produce or update the business concept alone.
+</Note>
+
+## Example Scenarios
+
+<CardGroup cols={2}>
+  <Card title="Restaurant reservations app" icon="calendar">
+    "I want to build an app that helps restaurants manage reservations. Help me figure out the business side first."
+  </Card>
+  <Card title="Freelance designer marketplace" icon="palette">
+    "Here's my idea: a marketplace for freelance designers. I need to document what this is before we start building."
+  </Card>
+  <Card title="Internal support tool" icon="headset">
+    "We're considering building an internal tool for our support team. Let's document the business case first."
+  </Card>
+</CardGroup>
+
+## Interview Process
+
+The skill conducts a two-part interview: standing constraint questions first, then business concept questions. All questions are delivered one at a time via tool calls — never inline in the conversation — with multiple-choice options and an "I don't know, you decide" escape hatch.
+
+### Part 1: Standing Constraint Questions
+
+These establish project-wide constraints that every downstream document inherits. They are asked once and never repeated by any later skill.
+
+1. **Team** — How many people will work on this? What's their skill level? *(Solo / Small 2–5 / Medium 6–15 / Large 15+)*
+2. **Hosting** — Where will this run? *(Cloud AWS/GCP/Azure / Self-hosted / Existing infrastructure / No preference)*
+3. **Budget** — How sensitive is the budget? *(Low — prefer managed services / Medium / High — minimize costs)*
+4. **Timeline** — How urgent is this? *(ASAP — MVP in weeks / Normal — few months / Careful — enterprise rigor)*
+5. **Regulatory** — Any compliance requirements? *(None / GDPR / PCI / HIPAA / Other)*
+6. **Existing systems** — Anything this must integrate with? *(None / List them)*
+
+### Part 2: Business Concept Questions
+
+7. **Core idea** — What are you building? What's the single most important thing it must do well?
+8. **The problem** — What problem does this solve? What are people doing today without this?
+9. **Target users** — Who specifically will use this? *(Concrete — "restaurant owners in urban areas," not "people who eat out")*
+10. **Value proposition** — Why would someone choose this over alternatives? What's the unique advantage?
+11. **Monetization** — How does this make money? *(Subscription / One-time / Freemium / Ads / Internal cost savings / Not sure)*
+12. **Scope** — What's the absolute minimum that's useful (v1)? What can wait for v2?
+13. **Timeline** — When does this need to exist? Is there a hard deadline?
+
+<Tip>
+**Contradiction detection is mandatory before closing Phase 1.** The skill explicitly checks whether the stated target user matches the monetization model, whether scope matches timeline, whether value proposition matches the user's actual pain, and whether standing constraints conflict with the concept. Contradictions are surfaced with a recommended resolution before document generation begins.
+</Tip>
+
+### The Escape Hatch
+
+Every question accepts "I don't know, you decide." When the user takes that path:
+1. The skill picks the most reasonable option given everything gathered so far.
+2. Records the choice and reasoning tagged as `[agent-decided]`.
+3. Continues without blocking.
+
+`owner_reviewed: false` is set on the document to flag that a human reviewer should inspect these decisions before the build starts.
+
+## What It Produces
+
+The output document (`1-business-plan.md`) covers 15 sections:
+
+<Accordion title="Full output section list">
+  1. **Executive Summary** — 2–3 sentences readable in 15 seconds
+  2. **Problem Statement** — concrete description of the pain, current workarounds, and why now
+  3. **Target Users** — primary and secondary user personas with current pain and unmet need
+  4. **Problem-Solution Fit** — mapping every problem to a specific capability, with validation evidence
+  5. **Market Context** — competitive landscape (feature matrix across ≥3 alternatives) and TAM/SAM/SOM sizing
+  6. **Value Proposition** — core value and unique advantage vs. alternatives
+  7. **Monetization Model** — model selected (or explicitly marked undecided)
+  8. **Scope** — must-have v1 features, nice-to-have v2+, explicitly out-of-scope items
+  9. **Stakeholder Map** — each stakeholder's role, interest, influence level, and communication needs
+  10. **Key Assumptions & Validation Plan** — top 5–8 assumptions with validation method, owner, deadline, and status
+  11. **Standing Constraints** — team, hosting, budget, timeline, regulatory, existing systems
+  12. **Success Criteria** — measurable targets with measurement method
+  13. **Risks & Unknowns** — likelihood, impact, and mitigation per risk
+  14. **Open Questions** — unresolved items with owner
+  15. **Agent-Decided Items** — escape-hatch decisions flagged for human review
+</Accordion>
+
+### Business Concept vs. Project Plan
+
+This skill answers the IDEA questions, not the DELIVERY questions. The boundary is explicit:
+
+| Aspect | Business Concept (this skill) | Project Plan (`project-plan`) |
+|:---|:---|:---|
+| **Focus** | What and why | How and when |
+| **Questions** | What problem? For whom? Why now? | What scope? What milestones? Who owns what? |
+| **Output** | Problem statement, users, value prop, constraints | WBS, RACI, timeline, risk register |
+| **Timing** | Phase 0 — before any technical work | Phase 0.5 — after the concept is clear |
+
+### Internal Tools vs. External Products
+
+The interview adapts based on whether the project is an internal tool or an external product:
+
+| Dimension | Internal Tool | External Product |
+|:---|:---|:---|
+| **Users** | Known employees with existing workflows | Unknown market — requires persona research |
+| **Monetization** | Cost savings / productivity gains | Revenue from customers |
+| **Acquisition** | Mandate / rollout / training | Marketing, sales, organic |
+| **Competition** | Current process / existing tool / spreadsheets | Market competitors |
+| **Success metric** | Efficiency gain, error reduction, adoption rate | Revenue, retention, market share |
+
+## Handoff
+
+<CardGroup cols={2}>
+  <Card title="Reads From" icon="arrow-down">
+    - User input — raw business idea, constraints, preferences (structured interview only)
+  </Card>
+  <Card title="Feeds Into" icon="arrow-up">
+    - `project-plan` — scope, constraints, timeline, team size
+    - `user-personas-behavior` — target users, value proposition, monetization model
+    - `technical-feasibility-study` — problem definition, constraints, existing systems
+    - `technical-specification` — problem statement, users, scope, standing constraints
+  </Card>
+</CardGroup>
+
+## Quality Gate
+
+Before marking this document as `final`, verify:
+
+- [ ] Problem statement is concrete and specific (not vague)
+- [ ] Target users are clearly defined with specific personas
+- [ ] Value proposition explains why this beats alternatives
+- [ ] Monetization model is decided (or explicitly marked as undecided)
+- [ ] Scope is divided into must-have (v1) and nice-to-have (v2+)
+- [ ] Standing constraints are established (team, hosting, budget, timeline, regulatory)
+- [ ] Success criteria are measurable
+- [ ] All `[agent-decided]` items are flagged for human review
+- [ ] No secrets, credentials, or API keys appear in the document

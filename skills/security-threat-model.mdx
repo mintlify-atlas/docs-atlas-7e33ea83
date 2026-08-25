@@ -1,0 +1,222 @@
+---
+title: "security-threat-model skill: STRIDE analysis, attack surface, and mitigations"
+sidebarTitle: "Threat Model"
+description: "Invoke the security-threat-model skill to produce a structured STRIDE threat model, DFD trust boundaries, risk register, and concrete mitigations before code ships."
+---
+
+The `security-threat-model` skill guides your AI coding agent through a full adversarial security review of any feature, service, or integration. Starting from a Data Flow Diagram and trust boundary map, it systematically applies the STRIDE framework — Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege — to every component and data flow, scores each threat by probability and impact, and produces a prioritised risk register with specific, implementable mitigations. The output is an action-oriented security document, not a theoretical audit: every control is precise enough for an engineer to implement directly.
+
+<Info>
+  **Type:** Workflow &nbsp;·&nbsp; **Estimated time:** 4–8 hours &nbsp;·&nbsp; **Standards:** Microsoft STRIDE, OWASP Top 10, CVSS risk scoring &nbsp;·&nbsp; **Output file:** `12-security-threat-model.md` &nbsp;·&nbsp; **Inclusion:** Conditional — include when the system handles authentication, payments, PII, or any external attack surface
+</Info>
+
+## Best for
+
+<CardGroup cols={2}>
+  <Card title="Pre-implementation security review" icon="shield-halved">
+    Threat-model a new feature before a single line of implementation code is written, when fixes are hours instead of weeks.
+  </Card>
+  <Card title="Third-party API and integration review" icon="plug">
+    Analyse the attack surface opened by every new external integration — payment processors, webhooks, OAuth providers.
+  </Card>
+  <Card title="Pre-launch service assessment" icon="rocket">
+    Run a structured adversarial pass before a new service goes live to surface risks that functional testing misses.
+  </Card>
+  <Card title="Compliance documentation" icon="file-contract">
+    Produce the security risk register required by PCI-DSS, SOC 2, and ISO 27001 audit programmes.
+  </Card>
+</CardGroup>
+
+## What it produces
+
+The skill outputs a structured `12-security-threat-model.md` document covering:
+
+- **Scope and assumptions** — what is modelled, what is explicitly out of scope, and the assumptions that bound the model
+- **Threat actor profiles** — opportunistic attackers, targeted actors, insiders, and APTs rated by likelihood
+- **Data Flow Diagram with trust zones** — Mermaid DFD marking every boundary where data crosses from untrusted to trusted zones
+- **Asset classification table** — every sensitive asset ranked by confidentiality, integrity, and availability value
+- **Supply chain threat analysis** — dependency CVEs, build pipeline attacks, third-party service compromise
+- **STRIDE analysis tables** — one table per category, each threat with Probability, Impact, Risk, Mitigation, and Residual Risk columns
+- **Attack trees** — for Critical threats, a decomposition of every viable attack path
+- **Prioritised risk register** — all threats ranked, with named owner, mitigation status, effort, and target date
+- **Accepted risks log** — risks consciously accepted with business justification and review date
+- **Security controls checklist** — pre-ship gate, ready to embed in a CI workflow
+
+## How to invoke it
+
+<CodeGroup>
+```bash Claude Code
+claude "security-threat-model [system or feature name]"
+
+# Examples:
+claude "security-threat-model the new JWT authentication system for our API"
+claude "security-threat-model our new file upload feature"
+claude "security-threat-model third-party payment processor webhook integration"
+```
+
+```bash Gemini CLI
+gemini "security-threat-model [system or feature name]"
+
+# Examples:
+gemini "security-threat-model the new JWT authentication system for our API"
+gemini "security-threat-model our new file upload feature"
+```
+
+```bash Generic (any agent)
+# Invoke via the engineering-docs skill pipeline:
+npx engineering-docs security-threat-model "[system or feature name]"
+```
+</CodeGroup>
+
+<Tip>
+  Provide as much context as you can upfront — data flows, actor types, sensitive assets handled. The more context you give, the fewer clarifying questions the agent needs to ask, and the more accurate the threat model will be.
+</Tip>
+
+## Example scenarios
+
+The skill works equally well for broad system reviews and narrow feature-level assessments:
+
+| Invocation | What gets modelled |
+|:---|:---|
+| `security-threat-model the new JWT authentication system for our API` | Token issuance, storage, expiry, replay, and privilege escalation vectors |
+| `security-threat-model our new file upload feature` | Malicious file content, path traversal, webroot exposure, MIME spoofing |
+| `security-threat-model third-party payment processor webhook integration` | Forged inbound webhooks, replay attacks, payload tampering, SSRF via callback URL |
+
+## Key concepts
+
+### STRIDE framework (Microsoft SDL)
+
+STRIDE provides six mutually exclusive categories that together cover all known attack classes:
+
+| Letter | Threat category | Security property violated | Classic example |
+|:---|:---|:---|:---|
+| **S** | Spoofing | Authentication | Credential stuffing, JWT forgery |
+| **T** | Tampering | Integrity | SQL injection, MITM data modification |
+| **R** | Repudiation | Non-repudiation | Denying a financial transaction with no audit trail |
+| **I** | Information Disclosure | Confidentiality | IDOR, stack traces in error responses, PII in logs |
+| **D** | Denial of Service | Availability | Application-layer flood, slow-query exhaustion |
+| **E** | Elevation of Privilege | Authorization | Mass assignment, RBAC bypass, path traversal |
+
+### Trust boundaries and DFDs
+
+The agent draws Data Flow Diagrams before any STRIDE analysis begins. Trust boundaries — drawn as dashed lines — mark every location where data moves from a lower-trust zone to a higher-trust zone. These are the architectural locations where attackers concentrate attacks because input validation, authentication, and data exposure failures cluster there.
+
+Standard zones used in the template:
+
+| Zone | Trust level | Typical components |
+|:---|:---|:---|
+| External | None | Browser, partner systems, webhook senders |
+| DMZ | Low | WAF, load balancer, CDN |
+| Internal | Medium | API services, background workers |
+| Data | High | Databases, caches, queues |
+
+### Risk scoring
+
+Risk = Probability × Impact, assessed on a 3×3 matrix:
+
+- **Critical** — High probability + High impact → act immediately
+- **High** — High probability + Medium impact, or Medium probability + High impact
+- **Medium** — Various mid-tier combinations
+- **Low** — Low probability + Low impact → accept or schedule
+
+Every mitigation must also document **residual risk** — the risk that remains after controls are applied. A threat marked "mitigated" without residual risk documentation gives false assurance.
+
+### Threat actor profiles
+
+Four profiles are assessed for every model:
+
+1. **Opportunistic** — automated scanners, credential stuffing bots; defeated by hygiene
+2. **Targeted** — competitors, fraud rings with a specific interest; require defence-in-depth
+3. **Insider** — employees or contractors with legitimate access; require least-privilege and audit logs
+4. **APT** — nation-state or well-funded groups; require layered security and incident response
+
+### Additional analysis layers
+
+The skill also covers areas that generic checklists miss:
+
+- **Cryptographic threat analysis** — algorithm selection, key management, TLS enforcement, timing attacks
+- **Supply chain threats** — dependency CVEs, compromised build pipelines, third-party service breach blast radius
+- **Privacy threat modelling** — data minimisation, consent, cross-border transfer controls (when PII is in scope)
+- **Social engineering** — phishing, pretexting, and baiting vectors relevant to the system
+- **Incident response integration** — for each High/Critical threat, detection alert, containment procedure, and recovery path
+
+## Interview process
+
+The skill uses a Socratic interview before drafting, with a maximum of **2–3 questions** using tool calls (not inline chat). It reads all prior `.engineering-docs/` files first to avoid re-asking known information.
+
+| Phase | Duration | What happens |
+|:---|:---|:---|
+| **Phase 1** | Pre-start | Reads existing architecture, DB, API, and access-control docs to pre-load context |
+| **Interview** | Interactive | Asks up to 3 targeted questions: user privilege classes and data sensitivity classification |
+| **Phase 2** | 40–60 min | Scope definition, DFD drawing, trust boundary identification |
+| **Phase 3** | 2–3 hrs | STRIDE analysis per component and data flow |
+| **Phase 4** | 40–60 min | Risk scoring for every identified threat |
+| **Phase 5** | 1–1.5 hrs | Mitigation design for all High and Critical threats |
+| **Phase 6** | 40–60 min | Risk register production with owners and deadlines |
+| **Phase 7** | After review | Cascades any feedback through STRIDE tables, risk register, and mitigations |
+
+## Output structure
+
+The generated document (`12-security-threat-model.md`) follows this section order, directly matching the template:
+
+<Accordion title="Full document section map">
+
+| # | Section | Contents |
+|:---|:---|:---|
+| 1 | Scope and Assumptions | In-scope components, explicitly out-of-scope items, model assumptions and their failure risk |
+| 2 | Threat Actor Profiles | Table of actors with motivation, skill level, resources, likelihood, and in-scope flag |
+| 3 | System Overview | Description, Mermaid DFD, trust zone table, asset classification |
+| 4 | Supply Chain Threats | Dependency, build pipeline, third-party service, and container image risks |
+| 5 | Attack Trees | Decomposed attack path trees for every Critical-rated threat |
+| 6.1–6.6 | STRIDE Analysis | Six tables — Spoofing, Tampering, Repudiation, Information Disclosure, DoS, Elevation of Privilege |
+| 7 | Risk Register | Prioritised table with owner, mitigation status, effort, and target date |
+| 8 | Accepted Risks | Consciously accepted risks with business justification and review schedule |
+| 9 | Security Controls Verified | Pre-ship checklist for CI enforcement |
+| 10 | Recommended Security Testing | Authentication bypass, IDOR, fuzzing, dependency audit, secret scanning schedule |
+
+</Accordion>
+
+## Handoff
+
+**Reads from:**
+
+| Document | What it consumes |
+|:---|:---|
+| `7-system-architecture.md` | System components, trust zones, data flows |
+| `8-database-design-document.md` | Data storage locations, sensitivity classification |
+| `9-api-design-document.md` | API surface area, authentication mechanisms |
+| `11-admin-access-control-specification.md` | Privilege model and trust boundary definitions |
+
+**Feeds into:**
+
+| Document | What it provides |
+|:---|:---|
+| `13-design-system-specification.md` | Security UX requirements — auth flows, safe error states |
+| `14-technical-blueprint.md` | Security requirements and mitigations to incorporate into feature designs |
+| `15-implementation-plan.md` | Security controls to sequence into build phases |
+
+## Quality gate
+
+Before marking the document `final`, the agent verifies each of these gates:
+
+<Steps>
+  <Step title="Trust boundaries drawn first">
+    Data Flow Diagrams with trust boundaries are complete before any STRIDE analysis begins. STRIDE without a DFD produces randomly enumerated threats that miss the highest-risk attack surfaces.
+  </Step>
+  <Step title="Every threat has a specific mitigation">
+    No threat is marked mitigated with generic advice. "Validate inputs" is not a control. "Rate limit login to 5 attempts/IP/10 min with CAPTCHA after 3 failures" is.
+  </Step>
+  <Step title="Residual risk documented">
+    Every mitigated threat carries a Residual Risk column. Threats still rated High or Critical after mitigation must be escalated for additional review.
+  </Step>
+  <Step title="All six STRIDE categories addressed">
+    All six categories are evaluated for every component — even if some are marked "Not Applicable," the justification must be written.
+  </Step>
+  <Step title="Risk register complete">
+    Every High and Critical threat has a named owner, mitigation status, and a target date. The register is sorted by risk level, not discovery order.
+  </Step>
+</Steps>
+
+<Warning>
+  **Conditional skill** — the threat model is required whenever the system handles authentication, payments, PII, tokens, admin privilege, or accepts input from external parties. For purely internal, read-only tooling with no sensitive data, it may be deferred — but document that decision.
+</Warning>

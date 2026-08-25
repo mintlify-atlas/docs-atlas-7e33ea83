@@ -1,0 +1,289 @@
+---
+title: "Cross-document consistency: how Engineering Docs keeps your blueprint coherent"
+sidebarTitle: "Consistency"
+description: "How Engineering Docs checks entity names, architectural decisions, API surfaces, and terminology for drift across your full document set — incrementally and as a final pass."
+---
+
+A blueprint is only as useful as it is internally consistent. When the database design calls a table `user_accounts` but the API design treats the resource as `customers`, and the security threat model references `User`, a developer picking up the project cold — or an AI agent starting a new session — faces immediate ambiguity. Engineering Docs addresses this with consistency checks that run after every document is produced and again as a final pass across the complete set, catching mismatches when they are cheap to fix rather than after they have compounded across five downstream documents.
+
+This page explains what consistency checking looks at, how it works both at the agent level and programmatically, the MCP tools available for automated validation, and the document metadata standard that makes machine-readable consistency checks possible.
+
+---
+
+## The Problem: Entity Drift Across Documents
+
+Documentation sets written sequentially — even by the same author — accumulate naming drift, decision drift, and assumption drift:
+
+- **Entity naming drift:** The business plan calls them "customers," the database schema uses `users`, the API endpoints address `/accounts`, and the test strategy references "end users." All four mean the same thing. No document is wrong in isolation, but together they require constant mental translation.
+- **Decision drift:** The system architecture chooses PostgreSQL; later, the implementation plan references a MongoDB migration step that was never decided. The two documents are inconsistent.
+- **Surface drift:** The API design adds a `/v1/payments/refunds` endpoint during a late-stage review. The security threat model, written earlier, has no STRIDE analysis covering refund processing.
+- **Terminology drift:** "Microservices" in one document, "services" in another, "modules" in a third — all describing the same deployment model.
+
+These inconsistencies are manageable in small document sets. In a 15-document blueprint, they cause real build-time confusion.
+
+---
+
+## When Consistency Checks Run
+
+Engineering Docs runs consistency checks at two points in the pipeline:
+
+<Steps>
+  <Step title="Incremental check — after each document">
+    Immediately after a new document is produced and written to `.engineering-docs/`, a lightweight cross-check runs against all previously written documents. At this point, the mismatch involves at most one new document versus an established set — the scope of any conflict is narrow and the fix is straightforward.
+  </Step>
+  <Step title="Final pass — before the document set is declared ready">
+    After all documents in the plan have been generated, a complete consistency pass runs across the full set. This catches any drift that the incremental checks missed, verifies that all `[agent-decided]` items are flagged in `index.md`, and confirms the reading order in `index.md` matches the actual dependency order.
+  </Step>
+</Steps>
+
+<Warning>
+Deferring consistency checks to the end only is an anti-pattern explicitly called out in the orchestrator's SKILL.md: "Incremental checks catch errors when they're cheap to fix. End-of-run checks find compounding problems." The final pass is a safety net, not the primary mechanism.
+</Warning>
+
+---
+
+## What Is Checked
+
+### Architecture ↔ Database ↔ API Alignment
+
+The orchestrator verifies that the system architecture document's component model is reflected in both the database design and the API design. Specifically:
+
+- Every service or component defined in the architecture that owns data should have a corresponding section in the database design.
+- The deployment topology in the architecture should match the infrastructure assumptions in the database design (e.g., a single-instance architecture should not have a multi-region sharding strategy in the database design).
+- The API design's resource hierarchy should align with the architectural component boundaries.
+
+### Endpoint ↔ Entity Matching
+
+Every API endpoint must have a corresponding database entity or a documented external dependency:
+
+- A `GET /v1/orders/{id}` endpoint implies an `orders` table or external order service. If neither exists in the database design, it is flagged.
+- Entity names are normalized for comparison — `user_accounts`, `UserAccount`, and `users` are compared using a singularization and case-folding algorithm to catch naming drift without false positives.
+
+### Security Model ↔ API Surface
+
+The security threat model must cover the API surface defined in the API design document:
+
+- Every external-facing endpoint should have at least one STRIDE threat assessment that addresses it, either directly by path or by component.
+- Authentication and authorization mechanisms described in the threat model must match the auth scheme defined in the API design.
+- If the API design adds an endpoint after the security threat model was written, the incremental consistency check flags the gap for a targeted STRIDE analysis of the new endpoint.
+
+### Test Strategy ↔ Feature Blueprints
+
+The test strategy document should reference every `technical-blueprint` that exists:
+
+- Each blueprint defines a feature; the test strategy should have acceptance test scenarios for each defined feature.
+- If a blueprint is created after the initial test strategy is written, the consistency check flags the test strategy as needing an update.
+
+### Terminology Across All Documents
+
+Common term variants — for technology names, domain entities, architecture patterns — are checked across the full document set:
+
+- Multiple forms of the same term found in different documents are reported as terminology inconsistencies with a recommendation to standardize on one form.
+- Examples: `PostgreSQL` vs `Postgres` vs `postgres`; `Kubernetes` vs `K8s` vs `k8s`; `microservices` vs `services` vs `modules`.
+
+---
+
+## The `check-consistency.js` Script
+
+For programmatic use outside the agent, Engineering Docs ships `scripts/check-consistency.js` — a Node.js script that reads a `.engineering-docs/` directory and produces a structured JSON consistency report.
+
+### Running It
+
+```bash check-consistency.sh
+# Basic usage
+node scripts/check-consistency.js ./.engineering-docs
+
+# Filter the JSON output with jq
+node scripts/check-consistency.js ./.engineering-docs | jq .summary
+
+# Show only errors and warnings
+node scripts/check-consistency.js ./.engineering-docs | jq '.checks | to_entries[] | select(.value.issues | length > 0)'
+```
+
+### What It Checks (5 Checks)
+
+<Accordion title="Check 1: Entity consistency across database and API documents">
+Extracts entity/table names from the database-design document — from `CREATE TABLE` statements, ER diagram entity blocks, and section headers — and compares them against resource names in the API design document. Reports entities that exist in one document but not the other as warnings.
+</Accordion>
+
+<Accordion title="Check 2: Endpoint-entity alignment">
+Extracts HTTP method + path combinations from the API design document. For each endpoint, extracts the resource segments from the path and checks whether a corresponding database entity exists. Reports unmatched endpoints as informational findings.
+</Accordion>
+
+<Accordion title="Check 3: Security threat model coverage of API surfaces">
+Verifies that the security threat model covers API-related threat categories (authentication, authorization, injection, rate limiting, IDOR, and others). Also checks whether individual endpoint path segments appear in the threat analysis. Reports gaps as warnings.
+</Accordion>
+
+<Accordion title="Check 4: Test strategy coverage of entities and resources">
+Checks whether the test strategy document explicitly references the entities and resources defined in the database and API documents. Reports untested entities as informational findings.
+</Accordion>
+
+<Accordion title="Check 5: Implementation plan dependency ordering">
+Verifies that phase dependencies in the implementation plan do not create forward or self-dependencies (e.g., Phase 3 claiming to depend on Phase 5). Reports ordering violations as errors. Also checks that Phase 0 includes data model/schema setup when database entities exist.
+</Accordion>
+
+### Output Format
+
+```json consistency-report.json
+{
+  "directory": "/path/to/.engineering-docs",
+  "timestamp": "2025-07-15T10:30:00.000Z",
+  "summary": {
+    "totalDocuments": 12,
+    "checksPerformed": 5,
+    "errors": 0,
+    "warnings": 2,
+    "info": 3
+  },
+  "checks": {
+    "entityConsistency": {
+      "status": "checked",
+      "issues": [
+        {
+          "severity": "warning",
+          "message": "Database entity \"order_items\" has no corresponding API resource",
+          "source": "database-design",
+          "target": "api-design",
+          "entity": "order_items"
+        }
+      ],
+      "entitiesFound": {
+        "database": ["users", "orders", "order_items", "products"],
+        "api": ["users", "orders", "products"]
+      }
+    }
+  }
+}
+```
+
+Exit code `0` when no errors are found; exit code `1` when errors exist. Warnings and info findings do not trigger a non-zero exit code.
+
+---
+
+## The MCP Server: Automated Validation Tools
+
+Engineering Docs ships an MCP server (`scripts/validate.js`) that exposes three tools for agent-driven validation. Configure it in `.mcp.json`:
+
+```json .mcp.json
+{
+  "mcpServers": {
+    "engineering-docs": {
+      "command": "node",
+      "args": ["scripts/validate.js"],
+      "description": "Engineering Docs validation server — validate_document_set, check_consistency, generate_index"
+    }
+  }
+}
+```
+
+### Available Tools
+
+<Tabs>
+  <Tab title="validate_document_set">
+    Checks that all required documents exist in `.engineering-docs/` and that each has valid frontmatter. Required documents are the eight always-core skills. Conditional documents are checked for frontmatter validity if present, but their absence is not reported as an error.
+
+    **What it validates:**
+    - All eight required documents exist (by slug: `business-plan`, `project-plan`, `user-personas`, `technical-specification`, `system-architecture`, `implementation-plan`, `test-strategy`, `deployment-plan`)
+    - Each document has a frontmatter block
+    - All six required frontmatter fields are present: `title`, `skill`, `status`, `owner_reviewed`, `last_updated`, `depends_on`
+    - The `status` field contains only valid values: `draft`, `final`, or `superseded`
+
+    **Returns:** `{ ok: boolean, required: [...], conditional: [...], errors: [...] }`
+  </Tab>
+  <Tab title="check_consistency">
+    Verifies cross-document consistency across the full document set: dependency references, entity name overlap, and terminology variants.
+
+    **What it checks:**
+    - Every `depends_on` filename in each document's frontmatter actually exists in the directory
+    - Entity names referenced in later documents appear in the documents they depend on (informational gap analysis)
+    - Common technology term variants are not mixed across documents (e.g., `PostgreSQL` vs `Postgres`)
+
+    **Returns:** `{ ok: boolean, files_checked: number, issues: [...] }`
+  </Tab>
+  <Tab title="generate_index">
+    Generates a fresh `index.md` in markdown format from all documents currently in `.engineering-docs/`, reading title, skill, status, and metadata from each document's frontmatter.
+
+    **Returns:** `{ ok: boolean, index: "<markdown string>", stats: { total, draft, final } }`
+
+    The generated index includes: a document set table with status and review state, a reading order section, and a status summary. Use this after adding documents manually or after a brownfield run to rebuild a clean navigation index.
+  </Tab>
+</Tabs>
+
+---
+
+## Document Metadata Standard
+
+Consistency checking depends on every generated document carrying a machine-readable frontmatter block. The orchestrator writes this block to every document it produces:
+
+```yaml document-frontmatter.md
+---
+title: System Architecture Document
+skill: system-architecture-document
+status: draft | final | superseded
+owner_reviewed: true | false
+last_updated: 2025-07-15
+depends_on: [1-business-plan.md, 5-technical-specification.md]
+supersedes: ""
+---
+```
+
+<ParamField path="title" type="string" required>
+  The full human-readable title of the document. Used by `generate_index` to build the navigation table.
+</ParamField>
+
+<ParamField path="skill" type="string" required>
+  The source skill name (kebab-case). Used by `check-consistency.js` to locate documents by type. Must match the skill directory name exactly.
+</ParamField>
+
+<ParamField path="status" type="string" required>
+  One of `draft`, `final`, or `superseded`. `draft` means the document is complete but awaiting owner review. `final` means the owner has reviewed and approved. `superseded` means a newer version exists.
+</ParamField>
+
+<ParamField path="owner_reviewed" type="boolean" required>
+  Set to `false` when the document contains any `[agent-decided]` items. This flag is specifically designed to direct human reviewer attention to documents that contain AI-chosen defaults, not owner-specified decisions.
+</ParamField>
+
+<ParamField path="last_updated" type="string" required>
+  ISO date string (`YYYY-MM-DD`). Updated every time the document is revised. Used by `generate_index` for the status summary table.
+</ParamField>
+
+<ParamField path="depends_on" type="array" required>
+  List of filenames this document assumes as prior context. Used by `check_consistency` to verify that all declared dependencies exist and to perform entity gap analysis.
+</ParamField>
+
+<ParamField path="supersedes" type="string">
+  Filename of the document this version replaces, if applicable. Written when a brownfield update archives an earlier version of the same document type.
+</ParamField>
+
+---
+
+## How `[agent-decided]` Items Are Flagged for Human Review
+
+When a user answers "I don't know, you decide" to an interview question, the orchestrator picks the most reasonable option given all prior context, records the choice in the document body, and tags it as `[agent-decided]`:
+
+```markdown database-design.md
+## 3. Database Technology Selection
+
+**Choice:** PostgreSQL 15
+**Tag:** `[agent-decided]`
+**Reasoning:** Team has experience with relational databases per the project plan,
+and the data model has clear relational structure with foreign key requirements.
+No owner preference was stated.
+```
+
+Every document containing at least one `[agent-decided]` item has `owner_reviewed: false` in its frontmatter, regardless of whether anything else in the document was reviewed. The `generate_index` MCP tool surfaces these in the index status table so a human reviewer can see at a glance exactly which documents need attention before build starts.
+
+The `index.md` master document also maintains a dedicated **Agent-Decided Items** table (Section 8) that rolls up every `[agent-decided]` item from all documents:
+
+```markdown index.md — Section 8
+## 8. Agent-Decided Items (Need Owner Review)
+
+| Item | Document | Decision Made | Reasoning |
+|:-----|:---------|:--------------|:----------|
+| Database technology | 7-system-architecture.md | PostgreSQL 15 | Team familiarity, relational data model |
+| Cache layer | 9-api-design.md | Redis | Standard for session/token storage |
+```
+
+<Note>
+`[agent-decided]` is not a quality problem — it is a transparency mechanism. The orchestrator is designed to make a reasonable choice and keep moving rather than blocking on every unknown. The `[agent-decided]` tag ensures no AI-chosen default is silently accepted as owner intent.
+</Note>

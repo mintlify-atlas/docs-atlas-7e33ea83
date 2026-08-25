@@ -1,0 +1,359 @@
+---
+title: "system-architecture-document skill: C4 diagrams, 4+1 views, and tech stack"
+sidebarTitle: "System Architecture"
+description: "Produce a comprehensive SAD with C4 model diagrams at three levels, 4+1 architectural views, integration maps, security architecture, observability design, and an embedded ADR log."
+---
+
+The `system-architecture-document` skill produces a System Architecture Document (SAD) — the definitive reference for how a software system is organized, why key architectural choices were made, and how the system connects to the world around it. It maps the full structural picture across multiple levels of abstraction using the C4 model and five architectural views, serving onboarding engineers, architects reviewing change impact, security auditors, and operators planning infrastructure changes.
+
+<Info>
+  **At a glance**
+
+  | Field | Value |
+  | :--- | :--- |
+  | **Type** | Workflow |
+  | **Estimated time** | 8–16 hours |
+  | **Output file** | `7-system-architecture.md` |
+  | **Argument hint** | `[system name]` |
+  | **Diagram format** | Mermaid (version-controllable) |
+</Info>
+
+## Best for
+
+<CardGroup cols={2}>
+  <Card title="New system documentation" icon="diagram-project">
+    Documenting the architecture of a new system before implementation begins — establishing the structural blueprint teams build against.
+  </Card>
+  <Card title="Existing system archaeology" icon="magnifying-glass">
+    Producing architectural documentation for an existing system that lacks it, reflecting reality (including tech debt) rather than aspirations.
+  </Card>
+  <Card title="Compliance and security review" icon="shield-check">
+    Preparing architecture documentation for a security or compliance review — trust boundaries, data flow, and threat model coverage included.
+  </Card>
+  <Card title="Senior engineer onboarding" icon="user-graduate">
+    Giving new senior engineers or architects a structured overview of how the system works and why it was built this way.
+  </Card>
+</CardGroup>
+
+## What it produces
+
+The skill generates a 10–20 page SAD (excluding appendices) with these major artifacts:
+
+- **Architecture principles** — guiding principles that govern all decisions and act as tie-breakers during trade-offs
+- **C4 model diagrams** — System Context (Level 1), Container (Level 2), and Component (Level 3) in Mermaid
+- **Process view** — sequence diagrams for critical runtime flows including error paths
+- **Deployment view** — infrastructure topology with network tiers, regions, and managed services
+- **Integration map** — every external integration with protocol, auth, error handling, and SLA dependency
+- **Data flow and trust boundaries** — where data crosses trust zones, sensitive data classification
+- **Security architecture** — STRIDE threat model summary, security controls by trust zone, secrets management, network security
+- **Disaster recovery** — RPO/RTO targets, backup strategy, and failover procedure
+- **Observability architecture** — structured logging, metrics, distributed tracing, and alerting severity levels
+- **Data architecture** — schema overview, partitioning strategy, caching strategy, data lifecycle
+- **API governance** — versioning policy, rate limiting tiers, API gateway configuration
+- **Cost model** — monthly infrastructure cost breakdown with 10x and 100x scaling cost curves
+- **Testing architecture** — environment matrix, CI/CD pipeline gates, contract testing
+- **Development view** — code organization, module boundaries, dependency rules
+- **Architecture Decision Record log** — every significant architectural decision with full MADR-format entries
+- **Known technical debt** — deliberate compromises with remediation paths
+
+## How to invoke it
+
+<CodeGroup>
+```bash Claude Code
+claude "Create a system architecture document for PayFlow, a multi-brand payment gateway with a PHP 8.3 backend, MySQL database, custom plugin system, and white-label domain routing."
+```
+
+```bash Gemini CLI
+gemini "Create a system architecture document for PayFlow, a multi-brand payment gateway with a PHP 8.3 backend, MySQL database, custom plugin system, and white-label domain routing."
+```
+
+```bash Generic (any agent)
+system-architecture-document [system name]
+```
+</CodeGroup>
+
+## Example scenarios
+
+- *"Document the system architecture for our payment gateway platform"*
+- *"Create a SAD for our new microservices-based notification system"*
+- *"I need a C4 diagram and architecture overview for our SaaS billing platform"*
+
+## Key concepts
+
+### C4 model — four zoom levels
+
+The C4 model (Simon Brown) provides a hierarchical approach to architecture documentation — like Google Maps with multiple zoom levels. All diagrams are produced in Mermaid for version control.
+
+<Tabs>
+  <Tab title="Level 1: System Context">
+    **Audience:** All stakeholders, including non-technical product leadership.
+
+    Shows the system's place in the world: who uses it and what external systems it depends on or serves.
+
+    ```mermaid
+    C4Context
+      title System Context — Payment Gateway
+
+      Person(merchant, "Merchant", "Configures payment flows and views reports")
+      Person(shopper, "Shopper", "Completes checkout on merchant storefront")
+
+      System(gateway, "Payment Gateway", "Processes payments, routes to acquirers, delivers webhooks")
+
+      System_Ext(acquirer, "Card Acquirer", "Authorizes card transactions")
+      System_Ext(fraud, "Fraud Engine", "Scores transaction risk")
+
+      Rel(merchant, gateway, "Manages", "HTTPS")
+      Rel(shopper, gateway, "Pays via", "HTTPS")
+      Rel(gateway, acquirer, "Submits charges", "REST/HTTPS")
+      Rel(gateway, fraud, "Requests risk score", "REST/HTTPS")
+    ```
+  </Tab>
+  <Tab title="Level 2: Container">
+    **Audience:** Technical leads and architects.
+
+    Shows the major deployable/executable units (web apps, APIs, databases, queues). Each container has its own process space, deployment lifecycle, and technology choice.
+
+    ```mermaid
+    C4Container
+      title Container Diagram — Payment Gateway
+
+      Person(merchant, "Merchant")
+
+      System_Boundary(gateway, "Payment Gateway") {
+        Container(web, "Web Application", "PHP 8.3 / Twig", "Admin UI and checkout flows")
+        Container(api, "API Layer", "PHP 8.3", "REST API for merchant integrations")
+        Container(db, "Database", "MySQL 8.x", "Transactional and configuration data")
+        Container(queue, "Job Queue", "Redis / Workers", "Async: webhooks, reports, notifications")
+      }
+
+      Rel(merchant, web, "Uses", "HTTPS")
+      Rel(web, api, "Calls", "Internal HTTP")
+      Rel(api, db, "Reads/Writes", "PDO/MySQL")
+      Rel(api, queue, "Enqueues jobs", "Redis")
+    ```
+  </Tab>
+  <Tab title="Level 3: Component">
+    **Audience:** Developers implementing or modifying the system.
+
+    Shows the internal structure of the most critical containers. Level 3 is not required for every container — focus on the most complex ones.
+
+    ```mermaid
+    C4Component
+      title Component Diagram — API Layer
+
+      Container_Boundary(api, "API Layer") {
+        Component(router, "Router", "PSR-7", "Routes requests to controllers")
+        Component(ctrl, "Payment Controller", "PHP Class", "Handles payment requests")
+        Component(svc, "Payment Service", "PHP Class", "Business logic and orchestration")
+        Component(repo, "Payment Repository", "PHP Class", "Data access layer")
+      }
+
+      ContainerDb(db, "Database", "MySQL")
+
+      Rel(router, ctrl, "Routes to")
+      Rel(ctrl, svc, "Delegates to")
+      Rel(svc, repo, "Reads/Writes via")
+      Rel(repo, db, "Queries", "PDO")
+    ```
+  </Tab>
+  <Tab title="Level 4: Code">
+    Level 4 (class/function level) is **usually omitted** from the SAD — IDEs and static analysis tools serve this purpose better. The skill does not produce Level 4 diagrams by default.
+  </Tab>
+</Tabs>
+
+<Warning>
+  Agents often produce a container diagram and stop. The C4 model requires multiple zoom levels. Skipping Level 1 forces non-technical stakeholders to read a technical diagram. Skipping Level 3 leaves developers without implementation guidance for complex containers.
+</Warning>
+
+### Diagram model selection
+
+The skill selects the diagramming approach based on team size and system complexity:
+
+| Context | Recommended Approach |
+| :--- | :--- |
+| Solo developer or small team (≤ 3) | C4 Level 1 + Level 2 only; keep diagrams minimal and focused |
+| Growing team (4–15 engineers) | C4 Level 1, 2, and 3 for critical containers; add sequence diagrams for critical flows |
+| Large org / multiple teams | Full C4 hierarchy + 4+1 views + deployment topology + integration map; formal ADR log required |
+| Event-driven or serverless | Supplement C4 with event schema diagrams, event bus topology, and dead-letter handling documentation |
+| Micro-frontend | Add module federation diagram, shared state management strategy, and deployment independence map |
+
+### 4+1 view model (Kruchten)
+
+The SAD documents five complementary views of the same architecture:
+
+| View | Covers | Audience |
+| :--- | :--- | :--- |
+| **Logical** | Functional decomposition — classes, modules, layers | Developers, architects |
+| **Process** | Runtime behavior, concurrency, synchronization — sequence diagrams | Architects, ops |
+| **Development** | Code organization, modules, packages, dependency rules | Developers |
+| **Deployment / Physical** | Infrastructure, nodes, network topology, regions | Infrastructure, ops |
+| **Scenarios (+1)** | Key use cases that validate the other four views | All stakeholders |
+
+### Architecture Decision Records (ADRs) in the SAD
+
+Every significant architectural decision must be recorded as an immutable ADR inline in the SAD. The document includes an ADR log summary table plus full MADR-format entries for each decision.
+
+ADR states follow the lifecycle: `Proposed` → `Accepted` → `Deprecated` → `Superseded by ADR-XXX`
+
+Each inline ADR captures: context, decision, alternatives considered (with pros/cons and rejection reason), and consequences (positive and negative).
+
+For standalone ADRs created outside the SAD, see the [`architecture-decision-record`](/skills/architecture-decision-record) skill.
+
+### Security architecture
+
+The SAD includes a dedicated security section with:
+
+- **STRIDE threat model summary** — key threat categories (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege) mapped to architectural controls
+- **Security controls by trust zone** — external (WAF, TLS termination), DMZ (auth enforcement, CORS), internal (service-to-service auth, parameterized queries), data (encryption at rest, access logging)
+- **Secrets management** — how secrets are stored, rotated, and accessed (never in code or config files)
+- **Sensitive data classification** — Restricted, Confidential, Internal, Public with storage and transmission requirements per category
+
+### Observability architecture
+
+The SAD specifies the full observability stack before implementation:
+
+- **Logging** — structured JSON format, correlation IDs, log levels, aggregation pipeline, retention
+- **Metrics** — request rate, error rate, latency percentiles (p50/p95/p99), queue depth, DB connection pool utilization
+- **Distributed tracing** — W3C Trace Context or B3 propagation, sampling rate, trace storage
+- **Alerting** — severity levels P1 (Critical) through P4 (Info) with response time targets and escalation paths
+
+## Interview process
+
+<Steps>
+  <Step title="Context loading">
+    Reads all existing `.engineering-docs/` files. Extracts tech stack, team structure, existing constraints, and NFR targets from prior documents without re-asking.
+  </Step>
+  <Step title="Socratic clarification (max 2–3 questions)">
+    Asks: (1) What are the estimated concurrent users, transaction throughput (TPS), or data storage scale targets? (2) What are the target uptime SLAs, disaster recovery goals (RPO/RTO), or multi-region requirements? Questions are tool calls with multiple-choice options.
+  </Step>
+  <Step title="System context (60 min)">
+    Defines system boundaries, actors, external system dependencies. Produces Level 1 C4 diagram.
+  </Step>
+  <Step title="Container architecture (2 hrs)">
+    Decomposes into deployable units. Produces Level 2 C4 diagram with technology choices for each container.
+  </Step>
+  <Step title="Component architecture (2–4 hrs)">
+    Decomposes critical containers into major internal components. Produces Level 3 C4 diagrams for the most complex containers only.
+  </Step>
+  <Step title="Deployment view (90 min)">
+    Maps containers to infrastructure. Documents network topology, tiers, regions, and external managed services.
+  </Step>
+  <Step title="Integration and data flow (60 min)">
+    Maps all integration points. Documents data flow, trust boundaries, and sensitive data classification.
+  </Step>
+  <Step title="NFR and quality attributes (60 min)">
+    Documents architectural decisions driven by performance, scalability, security, and reliability NFRs with measurable targets.
+  </Step>
+  <Step title="ADR log (60 min per ADR)">
+    Documents each significant architectural decision with full MADR-format content and alternatives considered.
+  </Step>
+</Steps>
+
+## Output structure
+
+<Accordion title="Executive Summary">
+  System purpose, architectural style (monolith, microservices, event-driven, layered), the key NFR drivers that shaped the architecture, and the most important decisions made.
+</Accordion>
+
+<Accordion title="Architecture Principles">
+  Guiding principles that govern all decisions — for example: "Simplicity over sophistication," "Explicit over implicit," "Data integrity over performance." Each with rationale and practical implication.
+</Accordion>
+
+<Accordion title="C4 Level 1: System Context">
+  Mermaid C4Context diagram. External system dependencies table with direction, protocol, purpose, and SLA dependency flag.
+</Accordion>
+
+<Accordion title="C4 Level 2: Container Architecture">
+  Mermaid C4Container diagram. Container inventory with technology, responsibility, and scalability strategy.
+</Accordion>
+
+<Accordion title="C4 Level 3: Component Architecture">
+  Mermaid C4Component diagrams for critical containers. Not required for every container.
+</Accordion>
+
+<Accordion title="Deployment View">
+  Mermaid graph showing web tier, application tier, and data tier with network zones. Infrastructure inventory table with component type, specs, count, region, and ownership.
+</Accordion>
+
+<Accordion title="Process View — Key Flows">
+  Mermaid sequence diagrams for critical runtime flows (e.g., payment processing, webhook delivery). Error paths documented, not just happy paths.
+</Accordion>
+
+<Accordion title="Integration Map">
+  Every integration with direction, protocol, auth method, data format, error handling strategy, and SLA.
+</Accordion>
+
+<Accordion title="Data Flow and Trust Boundaries">
+  Mermaid diagram showing data movement across trust zones. Sensitive data classification table: category, classification level, storage controls, transmission controls, retention.
+</Accordion>
+
+<Accordion title="Security Architecture">
+  STRIDE threat model summary, security controls by trust zone, secrets management table, network security specification.
+</Accordion>
+
+<Accordion title="Disaster Recovery">
+  RPO/RTO targets, backup strategy per component (frequency, retention, encryption), failover procedure with numbered steps, DR testing schedule.
+</Accordion>
+
+<Accordion title="Observability Architecture">
+  Logging spec, metrics collection table, distributed tracing configuration, alerting severity matrix with escalation paths.
+</Accordion>
+
+<Accordion title="Data Architecture">
+  Schema overview, partitioning strategy per large table, caching strategy (what is cached, TTL, invalidation), data lifecycle per category.
+</Accordion>
+
+<Accordion title="API Governance">
+  Versioning policy, deprecation headers, rate limiting tiers, API gateway responsibilities.
+</Accordion>
+
+<Accordion title="Cost Model">
+  Monthly cost per component. Scaling cost curve at 1x/10x/100x traffic with key cost drivers.
+</Accordion>
+
+<Accordion title="Testing Architecture">
+  Environment matrix (local/CI/staging/production), CI/CD pipeline gates, contract testing coverage.
+</Accordion>
+
+<Accordion title="Development View">
+  Repository structure (monorepo vs polyrepo), module boundaries, dependency rules.
+</Accordion>
+
+<Accordion title="Architecture Decision Record Log">
+  ADR log summary table. Full MADR-format entries for each decision: context, decision, alternatives considered with rejection reasons, consequences (positive and negative). Use the standalone `architecture-decision-record` skill for decisions created ad-hoc.
+</Accordion>
+
+<Accordion title="Quality Attribute Requirements">
+  Table mapping each quality attribute (availability, performance, security, scalability, maintainability) to its measurable target, the architectural decision that satisfies it, and the ADR reference.
+</Accordion>
+
+<Accordion title="Alternatives Considered">
+  At least two rejected architectural alternatives with pros, cons, and specific rejection reasons — preventing future engineers from re-investigating already-evaluated paths.
+</Accordion>
+
+<Accordion title="Known Technical Debt">
+  Deliberate architectural compromises: what, why accepted, remediation path, priority level.
+</Accordion>
+
+## Handoff
+
+**Reads from:**
+- `technical-specification` — functional and non-functional requirements that drive architectural decisions
+- `technical-feasibility-study` — technology constraints, integration feasibility, risk mitigations
+- `2-project-plan` — delivery timeline, team structure, dependencies
+- `ux-flow-specification` — frontend component structure and API interaction points
+
+**Feeds into:**
+- Implementation — architectural structure guiding code organization and module boundaries
+- `infrastructure-specification` — deployment topology, scaling strategy, monitoring needs
+- Security review — trust boundaries, data flow, and threat model foundation
+
+## Quality gate
+
+Before marking the document `final`, verify:
+
+- [ ] C4 diagrams exist at Level 1 (System Context) and Level 2 (Container), with Level 3 (Component) for critical containers
+- [ ] The Alternatives Considered table documents at least two rejected alternatives with specific, evidence-based reasoning
+- [ ] Trust boundaries and data flow are explicitly mapped with sensitive data classification
+- [ ] Every significant architectural decision has a corresponding ADR in the log
+- [ ] Non-functional requirements have measurable targets linked to architectural decisions

@@ -1,0 +1,230 @@
+---
+title: "project-plan skill: scope, milestones, RACI, and work breakdown"
+sidebarTitle: "Project Plan"
+description: "Generate a delivery plan covering WBS, three-point estimates, RACI ownership, critical path, risk register, budget, quality gates, and change management process."
+---
+
+The `project-plan` skill produces the top-level delivery plan that every other Engineering Docs document hangs off of. Where a technical specification defines *what* the system must do and an architecture document defines *how* it is structured, this skill defines *who* does the work, in what sequence, against what timeline, and what could derail it. It applies Work Breakdown Structure (WBS) decomposition, three-point estimation, milestone-based planning, and a RACI matrix to remove ambiguity about ownership and schedule before a single line of code is written.
+
+## At a Glance
+
+| Property | Value |
+|:---|:---|
+| **Type** | Workflow |
+| **Output file** | `.engineering-docs/2-project-plan.md` |
+| **Estimated time** | 2–4 hours |
+| **Depends on** | `business-concept` (scope, team, timeline, constraints) |
+| **Target length** | 5–8 pages (excluding appendices) |
+
+## Best For
+
+- Kicking off any new project or major initiative before implementation planning begins
+- Establishing milestones and a delivery timeline that stakeholders outside engineering can track
+- Clarifying who owns what when multiple people or teams are involved
+- Surfacing schedule, resource, and scope risks before they become delays
+
+## How to Invoke It
+
+<CodeGroup>
+```bash Claude Code
+engineering-docs:project-plan Create a project plan for building a new customer support ticketing platform from scratch.
+```
+
+```bash Gemini CLI
+@engineering-docs project-plan We're a team of 4 — write a project plan with milestones and a RACI matrix for our mobile app rewrite.
+```
+
+```bash Generic / any agent
+project-plan [project or product name]
+```
+</CodeGroup>
+
+<Note>
+`project-plan` is automatically invoked as Phase 0.5 when you use `using-engineering-docs`. Invoke it directly when you already have a business concept and want to produce only the delivery plan.
+</Note>
+
+## Example Scenarios
+
+<CardGroup cols={2}>
+  <Card title="New support ticketing platform" icon="ticket">
+    "Create a project plan for building a new customer support ticketing platform from scratch."
+  </Card>
+  <Card title="Mobile app rewrite" icon="smartphone">
+    "We're a team of 4 — write a project plan with milestones and a RACI matrix for our mobile app rewrite."
+  </Card>
+  <Card title="Monolith migration" icon="server">
+    "Plan the delivery timeline and dependencies for migrating our monolith to a new framework."
+  </Card>
+</CardGroup>
+
+## Interview Process
+
+The skill asks a maximum of 2–3 focused questions after loading all prior documents. If the business concept already contains team size, budget, and timeline, those are not re-asked.
+
+**Context loading:** Before asking any questions, the skill reads all prior documents in `.engineering-docs/` and extracts team size, budget, timeline, scope, and features. Only truly missing information triggers a question.
+
+**Skill-specific questions:**
+
+1. **Hard dates** — Are there any externally fixed dates (investor demo, contractual deadline, event) versus soft target dates?
+2. **Known dependencies** — Does this project depend on another team, a vendor, not-yet-built infrastructure, or a decision still pending elsewhere?
+
+All questions are delivered one at a time via tool calls — never inline — with multiple-choice options and an "I don't know, you decide" escape hatch.
+
+## Key Concepts
+
+<Accordion title="Work Breakdown Structure (WBS)">
+  Decompose the project into progressively smaller deliverables until each leaf item is estimable: typically 1 day–2 weeks of work. The WBS is a tree, not a flat list:
+
+  ```
+  Project
+  └── Phase
+      └── Workstream
+          └── Deliverable
+              └── Task
+  ```
+
+  Deliverables larger than 2 weeks need further decomposition. Deliverables smaller than 1 day should be grouped.
+</Accordion>
+
+<Accordion title="Three-Point Estimation">
+  For each deliverable, estimate three values:
+  - **Optimistic (O):** Best case — everything goes right
+  - **Most Likely (M):** Realistic under normal conditions
+  - **Pessimistic (P):** Worst case — significant obstacles
+
+  **Expected duration:** `E = (O + 4M + P) / 6`
+  **Standard deviation:** `SD = (P - O) / 6`
+
+  This produces a probability-weighted estimate and exposes uncertainty explicitly. Fall back to t-shirt sizing (XS/S/M/L/XL) for early-phase deliverables where detail is insufficient.
+</Accordion>
+
+<Accordion title="Critical Path Calculation">
+  **Forward pass (earliest start/finish):**
+  1. First deliverable with no predecessors: ES = 0
+  2. For each deliverable: EF = ES + Duration
+  3. For multiple predecessors: ES = max(EF of all predecessors)
+  4. Project earliest completion = EF of final deliverable
+
+  **Backward pass (latest start/finish):**
+  1. Final deliverable: LF = project earliest completion; LS = LF − Duration
+  2. For multiple successors: LF = min(LS of all successors)
+
+  **Float:** `Float = LS − ES` — deliverables with Float = 0 are on the critical path.
+
+  To shorten the timeline, crash (add resources to) or fast-track (parallelize) only critical-path deliverables. Non-critical path work cannot shorten the project.
+</Accordion>
+
+<Accordion title="RACI Matrix">
+  For every major deliverable, assign:
+  - **Responsible** — does the work
+  - **Accountable** — owns the outcome; **exactly one person per deliverable**
+  - **Consulted** — provides input before decisions
+  - **Informed** — notified after decisions
+
+  Ambiguous ownership (two people Accountable, or nobody) is the single most common cause of stalled work. The quality gate will not pass if any deliverable has dual or missing accountability.
+</Accordion>
+
+<Accordion title="Change Management Process">
+  Scope changes are inevitable. The plan defines the framework upfront:
+  1. **Propose** — anyone can submit a change request (RFC, ticket, or email)
+  2. **Analyze** — tech lead and PM assess timeline, budget, resource, and dependency impact
+  3. **Decide** — sponsor or change board approves or rejects based on impact analysis
+  4. **Communicate** — approved changes are broadcast to all stakeholders
+  5. **Track** — the change log in the plan document is updated
+
+  Every change request must include timeline impact, budget impact, resource impact, and dependency impact before it goes to approval.
+</Accordion>
+
+## What It Produces
+
+The output document (`2-project-plan.md`) covers 13 sections:
+
+<Accordion title="Full output section list">
+  1. **Overview** — goal, in-scope/out-of-scope items, key dates
+  2. **Work Breakdown Structure** — tree decomposition + estimation detail table with O/M/P/E/SD per deliverable; Definition of Ready checklist per deliverable
+  3. **Milestones** — binary Definition of Done, Acceptance Criteria, sign-off owner, quality gate requirement per milestone
+  4. **RACI Matrix** — full responsibility assignment; unstaffed roles with hiring owner and target fill date
+  5. **Dependencies and Critical Path** — dependency table with ES/EF/LS/LF/Float per deliverable; critical path summary; compression guidance
+  6. **Resourcing** — allocation per person; team onboarding plan for new members (ramp-up plan, buddy/mentor, first deliverable, access/tooling)
+  7. **Risk Register** — schedule, resource, scope, budget, and external risks with likelihood, impact, and mitigation
+  8. **Budget** — per-phase cost estimates (labor, infrastructure, tools, vendor), total with contingency buffer (10–20%), burn rate, cost tracking mechanism, budget risk table
+  9. **Quality Assurance** — code review policy, testing strategy per phase, quality gates per milestone, project-wide Definition of Done
+  10. **Communication Plan** — RACI for each communication type, cadence, tools
+  11. **Change Log** — formal change request tracking with impact analysis
+  12. **Retrospective / Learning** — cadence, format, facilitator, action item tracking
+  13. **Glossary** — project-specific terms and abbreviations
+</Accordion>
+
+## The 7-Phase Generation Process
+
+<Steps>
+  <Step title="Phase 1: Socratic Clarification (Mandatory Interview)">
+    Load all prior documents. Extract already-known information. Ask at most 2–3 questions about hard dates and known dependencies.
+  </Step>
+  <Step title="Phase 2: Scope and WBS (60–90 min)">
+    Define what is in and out of scope. Decompose into a WBS tree down to estimable deliverables. Apply three-point estimation (or t-shirt sizing for early phases). Flag any deliverable that cannot be estimated for a research spike.
+  </Step>
+  <Step title="Phase 3: Milestones and Timeline (60 min)">
+    Group deliverables into dated milestones with binary Definition of Done, Acceptance Criteria, and sign-off owners. Sequence against team capacity. Define quality gate requirements per milestone.
+  </Step>
+  <Step title="Phase 4: RACI and Ownership (40–60 min)">
+    Assign exactly one Accountable person per deliverable. Flag unstaffed roles with hiring timeline and which deliverables they block. Add a team onboarding section for any roles filled after project start.
+  </Step>
+  <Step title="Phase 5: Dependency and Critical Path Mapping (40–60 min)">
+    Map which deliverables block others. Calculate ES/EF/LS/LF/Float for every deliverable. Identify the critical path chain. Flag the milestone most exposed to slippage. Document compression guidance.
+  </Step>
+  <Step title="Phase 6: Risk Register (40–60 min)">
+    Identify schedule, resource, scope, budget, and external risks. Include risks for unstaffed roles, budget overruns, scope creep, and quality issues discovered late. Assign likelihood, impact, mitigation, and owner per risk.
+  </Step>
+  <Step title="Phase 7: Revision (After User Review)">
+    Apply requested changes, check for conflicts with prior documents, re-run consistency check, update metadata, and confirm with user.
+  </Step>
+</Steps>
+
+## Common Gotchas
+
+<Warning>
+**Multiple people Accountable for the same deliverable** — the RACI matrix requires exactly one Accountable person per deliverable. Two Accountable people means nobody is accountable. Flag and resolve every instance.
+</Warning>
+
+<Warning>
+**Vague milestone definitions like "backend mostly done"** — milestones must be binary (done or not done) and tied to something a stakeholder can observe or verify. "API endpoints deployed and passing integration tests" is a milestone; "backend 80% complete" is not.
+</Warning>
+
+<Warning>
+**Skipping the budget section** — even if the user did not provide cost data, the template must include budget placeholders. A project plan without a budget is incomplete.
+</Warning>
+
+## Handoff
+
+<CardGroup cols={2}>
+  <Card title="Reads From" icon="arrow-down">
+    - `business-concept` — problem, users, constraints, scope, timeline, market context
+    - `user-personas-behavior` — target users, usage patterns, priority features by persona
+    - `technical-specification` — system requirements, technical constraints, integration points
+  </Card>
+  <Card title="Feeds Into" icon="arrow-up">
+    - `implementation-plan` — scope boundaries, timeline constraints, team capacity
+    - `test-strategy-document` — quality gates, acceptance criteria, testing cadence per phase
+    - `deployment-plan` — timeline, dependencies, go-live milestones, rollback ownership
+    - `system-architecture-document` — delivery timeline, team structure, dependencies
+    - `ux-flow-specification` — feature prioritization, phased delivery scope
+  </Card>
+</CardGroup>
+
+## Quality Gate
+
+Before marking this document as `final`, verify:
+
+- [ ] Every deliverable in the WBS has exactly one Accountable person in the RACI matrix
+- [ ] All milestones have a binary Definition of Done tied to an observable outcome
+- [ ] All milestones have Acceptance Criteria with a sign-off owner and process
+- [ ] The critical path is identified and the milestone most exposed to slippage is flagged
+- [ ] The risk register covers schedule, resource, scope, and external risk categories (not just technical)
+- [ ] Scope boundaries are explicit: what is in scope and what is explicitly out of scope
+- [ ] Budget section exists with per-phase estimates, total budget, and burn rate (or is flagged TBD)
+- [ ] Quality gates are defined per milestone (test pass rate, coverage, review requirements)
+- [ ] Change management process is defined (proposal, impact analysis, approval authority)
+- [ ] Definition of Ready checklist is specified for deliverables
+- [ ] Retrospective cadence is established
+- [ ] Unstaffed roles are flagged with hiring timeline and risk mitigation

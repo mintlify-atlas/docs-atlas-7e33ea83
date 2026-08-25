@@ -1,0 +1,156 @@
+---
+title: "Install Engineering Docs on any AI coding agent"
+sidebarTitle: "Overview"
+description: "One-command setup for 14 AI agents — Claude Code, Gemini CLI, Cursor, Goose, Pi, Cline, and more. All 22 skills install automatically with safe-write protection."
+---
+
+Engineering Docs is distributed as an npm package (`engineering-docs`) and ships with a CLI installer, cross-platform shell scripts, and native marketplace listings for every supported agent. Whether you run `npx engineering-docs` for an interactive menu or pass a single flag to target a specific agent, the same 22 skills, 4 custom agents, MCP configuration, and hooks end up in the right place — automatically.
+
+## Recommended: one-command install
+
+```bash quickstart
+npx engineering-docs
+```
+
+Running `npx engineering-docs` with no flags presents an interactive numbered menu. Select your agent, confirm the destination path, and the installer copies every file in one step.
+
+<Note>
+  No global install required. `npx` fetches the latest version from the npm registry on every run, so you always get the newest skills without manually updating.
+</Note>
+
+## All supported agents
+
+Every agent target is wired directly in `scripts/install.js`. The table below lists every option, the CLI flag to skip the menu, the short alias where available, and the exact directory that receives the plugin files.
+
+| Agent | Flag | Alias | Install path |
+|:------|:-----|:------|:-------------|
+| **Gemini CLI** (global) | `--gemini` | `-g` | `~/.gemini/config/plugins/engineering-docs/` |
+| **Claude Code** (global) | `--claude` | `-c` | `~/.claude/plugins/engineering-docs/` |
+| **Local `.agents/`** (workspace) | `--local` | `-l` | `.agents/skills/engineering-docs/` |
+| **Cursor / Windsurf** (workspace) | `--cursor` | `-r` | `.cursor/rules/` |
+| **Kimi Code** (global) | `--kimi` | `-k` | `~/.kimi-code/plugins/engineering-docs/` |
+| **Codex** (workspace) | `--codex` | `-x` | `.codex/engineering-docs/` |
+| **Copilot CLI** (global) | `--copilot` | `-p` | `~/.copilot/plugins/engineering-docs/` |
+| **Goose** (global) | `--goose` | — | `~/.config/goose/extensions/engineering-docs/` |
+| **Pi** (global) | `--pi` | — | `~/.pi/packages/engineering-docs/` |
+| **OpenCode** (workspace) | `--opencode` | — | `.opencode/engineering-docs/` |
+| **Kilo Code** (global) | `--kilo` | — | `~/.kilo-code/plugins/engineering-docs/` |
+| **Roo Code** (global) | `--roo` | — | `~/.roo-code/plugins/engineering-docs/` |
+| **Cline** (workspace) | `--cline` | — | `.clinerules` |
+| **Factory Droid** (global) | `--factory` | — | `~/.factory/plugins/engineering-docs/` |
+
+Pass any flag directly to skip the interactive menu entirely:
+
+```bash direct-flag
+npx engineering-docs --gemini
+npx engineering-docs --claude
+npx engineering-docs --cursor
+```
+
+## What gets installed
+
+For every target **except** Cursor/Windsurf and Cline, the installer copies the full plugin tree:
+
+| Item | Purpose |
+|:-----|:--------|
+| `skills/` | 22 `SKILL.md` files — the core documentation skills |
+| `agents/` | 4 custom agent definitions |
+| `hooks/` | SessionStart hooks (`hooks.json`, `check-progress.js`) |
+| `.mcp.json` | MCP server configuration |
+| `.claude-plugin/` | Claude plugin manifest (`plugin.json`) |
+| `scripts/` | Utility and validation scripts |
+| `evals/` | Eval test framework |
+| `README.md`, `LICENSE`, `package.json` | Static metadata files |
+
+**Cursor / Windsurf** receives one `.mdc` rule file per skill: `engineering-docs-<skill-name>.mdc` inside `.cursor/rules/`.
+
+**Cline** receives a single `.clinerules` file copied to the project root.
+
+## Safe-write behavior
+
+The installer never silently overwrites files you have already customized. The following agent configuration files use **safe-write**: they are created only when the destination file does not already exist.
+
+| File | Written only if absent |
+|:-----|:----------------------|
+| `AGENTS.md` | ✅ |
+| `CLAUDE.md` | ✅ |
+| `GEMINI.md` | ✅ |
+| `COPILOT.md` | ✅ |
+| `GOOSE.md` | ✅ |
+| `PI.md` | ✅ |
+
+If a file already exists the installer prints `skipped <file> (already exists — your customization preserved)` and moves on. You will never lose local edits.
+
+## Cross-platform scripts
+
+If you prefer running a shell script directly — for example in a CI pipeline or on a machine where `npx` is unavailable — both scripts support the same set of target flags.
+
+<CodeGroup>
+
+```bash setup.sh (Linux / macOS)
+# Make executable first (one-time)
+chmod +x scripts/setup.sh
+
+# Interactive menu
+./scripts/setup.sh
+
+# Direct install (all supported targets)
+./scripts/setup.sh --gemini
+./scripts/setup.sh --claude
+./scripts/setup.sh --local
+./scripts/setup.sh --cursor
+./scripts/setup.sh --kimi
+./scripts/setup.sh --codex
+./scripts/setup.sh --goose
+./scripts/setup.sh --pi
+./scripts/setup.sh --opencode
+./scripts/setup.sh --kilo
+./scripts/setup.sh --roo
+./scripts/setup.sh --cline
+./scripts/setup.sh --factory
+./scripts/setup.sh --copilot
+```
+
+```powershell setup.ps1 (Windows)
+# Interactive menu
+pwsh scripts\setup.ps1
+
+# Direct install (-Target parameter)
+pwsh scripts\setup.ps1 -Target gemini
+pwsh scripts\setup.ps1 -Target claude
+pwsh scripts\setup.ps1 -Target local
+pwsh scripts\setup.ps1 -Target cursor
+pwsh scripts\setup.ps1 -Target kimi
+pwsh scripts\setup.ps1 -Target codex
+pwsh scripts\setup.ps1 -Target goose
+pwsh scripts\setup.ps1 -Target pi
+pwsh scripts\setup.ps1 -Target opencode
+pwsh scripts\setup.ps1 -Target kilo
+pwsh scripts\setup.ps1 -Target roo
+pwsh scripts\setup.ps1 -Target cline
+pwsh scripts\setup.ps1 -Target factory
+pwsh scripts\setup.ps1 -Target copilot
+```
+
+</CodeGroup>
+
+<Tip>
+  Both scripts implement the same safe-write rules as the Node.js installer — existing agent config files (`AGENTS.md`, `CLAUDE.md`, etc.) are never overwritten.
+</Tip>
+
+## Detailed install guides
+
+<CardGroup cols={2}>
+  <Card title="Claude Code" icon="c" href="/installation/claude-code">
+    Official marketplace install, manual registration, global flag install, and plugin validation steps.
+  </Card>
+  <Card title="Gemini CLI" icon="g" href="/installation/gemini-cli">
+    `gemini extensions install`, flag install, git clone method, and the `gemini-extension.json` manifest.
+  </Card>
+  <Card title="Cursor & Windsurf" icon="arrow-pointer" href="/installation/cursor-windsurf">
+    `.mdc` rule generation per skill, setup script usage, and post-install restart instructions.
+  </Card>
+  <Card title="Other Agents" icon="puzzle-piece" href="/installation/other-agents">
+    Goose, Pi, OpenCode, Kilo Code, Roo Code, Cline, Factory Droid, Kimi Code, Codex, and Copilot CLI.
+  </Card>
+</CardGroup>

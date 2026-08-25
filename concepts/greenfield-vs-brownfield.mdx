@@ -1,0 +1,136 @@
+---
+title: "Greenfield vs. Brownfield: how Engineering Docs detects your project mode"
+sidebarTitle: "Project Modes"
+description: "How Engineering Docs automatically detects whether you are starting from scratch or extending an existing system, and what changes in each mode."
+---
+
+Engineering Docs operates in one of two modes every time it runs: **Mode A (Greenfield)** for new projects built from a raw idea, and **Mode B (Brownfield)** for adding features to or documenting an existing codebase. The orchestrator detects the mode automatically before asking a single interview question — the detection result determines which skills run, in what order, and how much prior context is loaded before any new document is drafted.
+
+Understanding which mode you're in matters because the document set, the interview scope, and the treatment of existing files are all different. Getting mode detection right is what prevents the orchestrator from re-interviewing you about a business model you already defined three months ago, and from overwriting architecture decisions that are already live in production.
+
+---
+
+## Mode Comparison
+
+<Tabs>
+  <Tab title="Mode A — Greenfield">
+    **Trigger:** No `.engineering-docs/` folder exists in the project root, and the user's request describes building something new from scratch.
+
+    **What happens:**
+    - The full pipeline runs from Phase 0 (business concept) through the final master index.
+    - All six standing constraint questions (team size, hosting, budget, timeline, regulatory needs, existing integrations) are asked once, early — every downstream document depends on them.
+    - All eight always-core skills run unconditionally. Conditional skills are evaluated based on the answers gathered during business concept intake.
+    - The business concept interview is mandatory and cannot be skipped. It is the foundation every later skill reads from.
+
+    **End state:** A complete `.engineering-docs/` folder containing anywhere from 8 to 19+ documents, a populated `index.md`, and an ADR log in `adr/`.
+  </Tab>
+  <Tab title="Mode B — Brownfield">
+    **Trigger:** Any of the following conditions:
+    - A `.engineering-docs/` folder with an `index.md` already exists in the repo.
+    - The user's request uses language like "add a feature," "extend," "modify," "integrate," or similar.
+    - An existing codebase is present in the project root with no engineering-docs history.
+
+    **What happens:**
+    - The full business-plan / system-architecture interview is **not** re-run.
+    - The orchestrator reads the existing `index.md` and the documents it links to for prior context.
+    - If no docs exist yet, the orchestrator scans the existing codebase and README to infer current architecture, stack, and conventions — then asks the user to confirm or correct that inference rather than starting from zero.
+    - Only the subset of skills relevant to the specific change or feature are run.
+    - New documents are numbered to continue the existing sequence; no prior file is ever overwritten.
+
+    **End state:** New numbered documents appended to the existing `.engineering-docs/` folder, and `index.md` updated to reflect the additions.
+  </Tab>
+</Tabs>
+
+---
+
+## Side-by-Side Reference
+
+| Dimension | Mode A — Greenfield | Mode B — Brownfield |
+|:----------|:--------------------|:--------------------|
+| **Trigger condition** | No `.engineering-docs/`, no existing codebase | Existing `index.md`, "add a feature" language, or existing codebase without docs |
+| **Phase 0 (business concept)** | Mandatory — runs in full | Skipped — reads existing docs instead |
+| **Standing constraints** | Collected via interview | Read from existing `1-business-plan.md` |
+| **Skill scope** | Full pipeline (8 always-core + applicable conditional) | Subset relevant to the change |
+| **Prior document handling** | None — folder is created fresh | Loaded and read before any new interview |
+| **Codebase scan** | Not needed | Performed if no existing docs are present |
+| **Numbering** | Starts at 1 | Continues from highest existing number |
+| **Overwrite behavior** | N/A | Never overwrites; archives if replacing |
+
+---
+
+## Which Skills Run in Brownfield Mode?
+
+When a brownfield project adds a feature, Engineering Docs runs only the skills relevant to that specific change. The typical brownfield subset includes:
+
+<CardGroup cols={2}>
+  <Card title="Always run for features" icon="wrench">
+    - `technical-blueprint` — detailed design for the new feature itself
+    - `implementation-plan` — updated build sequence if scope or dependencies change
+    - `test-strategy-document` — scoped to the new feature's testing needs
+  </Card>
+  <Card title="Run when the change touches…" icon="arrows-split-up-and-left">
+    - `architecture-decision-record` — if the feature affects architectural choices
+    - `database-design-document` — if it touches the data model
+    - `api-design-document` — if it adds or changes endpoints
+    - `security-threat-model` — if it touches auth, payments, or PII
+    - `project-plan` — if scope or timeline changes
+  </Card>
+</CardGroup>
+
+The orchestrator states which conditional skills it is including or excluding and why, so you can redirect before generation starts.
+
+---
+
+## How Re-Runs Work: The No-Overwrite Rule
+
+Engineering Docs enforces a strict no-overwrite policy on every re-run, in both modes:
+
+<Steps>
+  <Step title="Read the existing state first">
+    On any invocation where `.engineering-docs/` exists, `index.md` is read first to determine what has already been produced, what is still in progress, and where the next unanswered question left off.
+  </Step>
+  <Step title="Append, never replace">
+    New documents produced during a brownfield run are assigned the next available number in the existing sequence. A second implementation plan becomes `18-implementation-plan-v2.md`, not a replacement of `14-implementation-plan.md`.
+  </Step>
+  <Step title="Archive stale documents explicitly">
+    If a document genuinely needs to be replaced (e.g., a system architecture that has fundamentally changed), the old file is moved to `.engineering-docs/archive/` with its original filename plus a UTC timestamp suffix. The new version takes the next available number.
+  </Step>
+  <Step title="Update index.md to reflect reality">
+    After any append or archive operation, `index.md` is updated so it always accurately describes the current document set. The superseded field in the new document's frontmatter points back to the archived original.
+  </Step>
+</Steps>
+
+---
+
+## Document Frontmatter on Re-Runs
+
+Every generated document carries a frontmatter block that explicitly tracks its relationship to prior versions. When a brownfield update supersedes an earlier document, this is captured in the metadata:
+
+```yaml superseded-example.md
+---
+title: System Architecture Document v2
+skill: system-architecture-document
+status: final
+owner_reviewed: false
+last_updated: 2025-07-15
+depends_on: [1-business-plan.md, 7-system-architecture.md]
+supersedes: 7-system-architecture.md
+---
+```
+
+The `supersedes` field is how any downstream agent or team member knows which document replaced which, without having to read both in full. The archived file's status is also updated to `superseded`.
+
+---
+
+## Codebase Scan in Brownfield (No Existing Docs)
+
+When a brownfield project has an existing codebase but no `.engineering-docs/` history, the orchestrator does not start a full Greenfield interview. Instead:
+
+1. It scans the project root — `README.md`, `package.json`, directory structure, existing config files — to infer the current stack, architecture pattern, and conventions.
+2. It presents its inferences to the user as a summary: "I can see this is a Node.js API using PostgreSQL and deployed to Heroku. Is that correct?"
+3. The user confirms or corrects the inference. Confirmed items are treated the same as owner-specified standing constraints.
+4. Only the delta — what's genuinely unknown or what the new feature adds — is collected via interview.
+
+<Warning>
+If the orchestrator starts re-asking questions about the business model or existing architecture when `.engineering-docs/` already exists, that is a signal that context is too full or `index.md` was not read first. Start a fresh session, point the agent at `index.md`, and resume from the last recorded checkpoint.
+</Warning>

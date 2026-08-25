@@ -1,0 +1,314 @@
+---
+title: "architecture-decision-record skill: immutable ADR log in MADR format"
+sidebarTitle: "ADR"
+description: "Create a single immutable Architecture Decision Record capturing why a significant technical choice was made, what alternatives were evaluated, and what the consequences are — in MADR format."
+---
+
+The `architecture-decision-record` skill produces a single, permanent Architecture Decision Record that captures why a significant technical choice was made, what alternatives were evaluated and rejected, and what the known consequences are. ADRs are **immutable by design** — once accepted, they are never edited, only superseded by a new ADR. This skill can be invoked at any point in the engineering lifecycle, not just during scheduled phases.
+
+<Info>
+  **At a glance**
+
+  | Field | Value |
+  | :--- | :--- |
+  | **Type** | Component (ad-hoc, not a scheduled step) |
+  | **Estimated time** | 30–60 minutes |
+  | **Format** | MADR (Markdown Architectural Decision Records) |
+  | **Output file** | `docs/adr/ADR-NNN-[decision-slug].md` |
+  | **Argument hint** | `[the decision being recorded]` |
+</Info>
+
+## Best for
+
+<CardGroup cols={2}>
+  <Card title="Significant architectural choices" icon="code-branch">
+    Any choice of language, framework, database, pattern, library, or protocol that a future engineer would need to understand the reasoning behind.
+  </Card>
+  <Card title="Hard-to-reverse decisions" icon="lock">
+    Decisions that will affect multiple teams or services, or that will be expensive to reverse once implementation has begun.
+  </Card>
+  <Card title="Outcome of technical debates" icon="comments">
+    Capturing the outcome of a design review, architecture discussion, or consensus process — including minority positions and the tie-breaking reasoning.
+  </Card>
+  <Card title="Historical system record" icon="clock-rotate-left">
+    Building a permanent, searchable record of why the system is structured the way it is — so engineers who join later can reconstruct reasoning without asking anyone.
+  </Card>
+</CardGroup>
+
+## When to write an ADR
+
+Write an ADR for any decision that:
+
+- Is significant enough that you would regret not having documented it in 2 years
+- Affects multiple components, teams, or services
+- Will be difficult or expensive to reverse
+- Requires understanding the "why" to maintain the system correctly
+
+**Do NOT write an ADR for:** routine implementation details, naming conventions (use a style guide), or decisions that will obviously change soon.
+
+<Tip>
+  The `architecture-decision-record` skill is invoked **ad-hoc** — whenever a significant decision is made — not as a sequential step in the pipeline. An ADR written retroactively (after the decision was already implemented) captures rationalization, not honest trade-off analysis. Write it during the decision, not after.
+</Tip>
+
+## How to invoke it
+
+<CodeGroup>
+```bash Claude Code
+claude "Document our decision to use HMAC-SHA256 request signing for webhook delivery instead of bearer tokens. We chose this because webhooks are server-to-server calls where rotating tokens is operationally complex, while HMAC signing uses a per-merchant secret and validates payload integrity simultaneously."
+```
+
+```bash Gemini CLI
+gemini "Write an ADR for choosing PostgreSQL over MongoDB for our primary data store."
+```
+
+```bash Generic (any agent)
+architecture-decision-record [the decision being recorded]
+```
+</CodeGroup>
+
+## Example scenarios
+
+- *"Document our decision to use Redis for session storage instead of database-backed sessions"*
+- *"Write an ADR for choosing PostgreSQL over MongoDB for our primary data store"*
+- *"Record the decision to adopt the Repository pattern for all database access"*
+- *"Document why we chose JWT over opaque tokens for our API authentication"*
+
+## Key concepts
+
+### The immutability principle
+
+ADRs are **append-only**. This is not a convention — it is the core design principle:
+
+| Situation | What to do |
+| :--- | :--- |
+| Decision is accepted and being implemented | Status: `Accepted`. Do not edit. |
+| A mistake was found in the accepted ADR | Write a new ADR with `Supersedes: ADR-NNN`. The original remains unchanged. |
+| The technology chosen is no longer supported | Mark as `Deprecated`. Add deprecation reason, date, and replacement. |
+| A newer decision replaces this one | Mark as `Superseded by ADR-NNN`. The chain of reasoning is preserved. |
+
+The history of changed minds is as valuable as the decisions themselves. Silent reversals — changing behavior without a new ADR — are the most destructive form of organizational knowledge loss.
+
+### ADR lifecycle
+
+```
+Proposed → Accepted → Deprecated → (no further state)
+                    ↘ Superseded by ADR-NNN → (new ADR)
+```
+
+- **Proposed** — Under discussion. May still change.
+- **Accepted** — Binding. Implementation should follow this decision.
+- **Deprecated** — The decision is outdated but not actively reversed. No replacement exists.
+- **Superseded** — A newer ADR (referenced by number) replaces this one.
+
+### MADR format
+
+This skill uses a variant of the **MADR (Markdown Architectural Decision Records)** format — the most widely adopted standard for Git-based ADR workflows. The output is a single Markdown file stored in `docs/adr/` with a zero-padded sequential number: `ADR-0001-use-postgresql-as-primary-database.md`.
+
+### What qualifies as ADR-worthy
+
+| ADR-worthy ✅ | Not ADR-worthy ❌ |
+| :--- | :--- |
+| Choice of database engine | Which column to add to a table |
+| Authentication strategy (JWT vs opaque tokens) | Variable naming convention |
+| Service communication pattern (REST vs gRPC vs events) | Which CSS utility class framework to use |
+| Deployment model (containers vs serverless vs VMs) | Whether to use single or double quotes |
+| Data access pattern (Repository vs Active Record) | A refactor that doesn't change external behavior |
+
+### ADR numbering
+
+- **Sequential, zero-padded:** `ADR-0001`, `ADR-0002`, etc. for consistent sorting
+- **No gaps:** Never skip numbers, even for a rejected or abandoned ADR
+- **No reuse:** Once assigned, a number is never reused — it is a permanent identifier
+- **Monorepo:** Prefix with domain: `ADR-API-0001`, `ADR-INFRA-0001`. Each domain maintains its own sequence
+- **Multi-repo:** Each repo has its own independent sequence. Cross-repo references use: `service-a/ADR-0003`
+
+### Consensus failure handling
+
+When the team cannot reach consensus:
+
+1. **Document all positions** — record each advocated approach with its proponent's reasoning; do not discard minority opinions
+2. **Identify the decision-maker** — who has the authority to break the tie (tech lead, architect, CTO); make it explicit
+3. **Set a deadline** — consensus-seeking without a deadline is infinite debate
+4. **Record the override** — if the decision-maker overrides majority opinion, document it as an explicit override with reasoning to prevent re-litigation
+5. **Post-decision commitment** — once decided, all team members implement it faithfully regardless of prior position
+
+### Decision revisit mechanism
+
+ADRs are not permanent edicts. The skill supports:
+
+- **Scheduled review** — for high-impact decisions, a review date can be set in the ADR
+- **Trigger conditions** — events that should prompt a revisit (e.g., "if the chosen library's GitHub activity drops below X commits/month")
+- **No silent reversals** — a decision is never reversed without a new ADR, even if everyone agrees the original was wrong
+
+## Interview process
+
+<Steps>
+  <Step title="Context loading">
+    Reads all existing `.engineering-docs/` files and the existing `docs/adr/` directory to determine the next sequential ADR number and understand the current architectural context.
+  </Step>
+  <Step title="Socratic clarification (max 2–3 questions)">
+    Asks: (1) What other options did you explore (at least 2), and why were they rejected? (2) What are the negative consequences (technical debt, overhead, limits) of accepting this decision? Questions are tool calls with multiple-choice options.
+  </Step>
+  <Step title="Document generation">
+    Assigns the next ADR number, fills out every section with precision — especially Alternatives Considered — and stores the file in `docs/adr/ADR-NNN-[decision-slug].md`.
+  </Step>
+  <Step title="Review and acceptance">
+    Gets review from at least one other senior engineer. Status changes from `Proposed` to `Accepted` only after review sign-off.
+  </Step>
+  <Step title="Log update">
+    Updates the ADR log table in `7-system-architecture.md` if a System Architecture Document exists for this project.
+  </Step>
+</Steps>
+
+## Output structure
+
+An example ADR produced by this skill:
+
+```markdown
+# ADR-0007: Use HMAC-SHA256 for Webhook Request Signing
+
+**Status:** Accepted
+**Date:** 2026-07-17
+**Author:** [Name]
+**Deciders:** [Engineering Lead, Security Lead]
+**Technical Story:** [Link to issue #142]
+**Review Date:** 2027-01-17
+
+---
+
+## Related ADRs
+
+| ADR | Relationship | Notes |
+| :--- | :--- | :--- |
+| ADR-0003 | Influenced by | Authentication strategy for API endpoints |
+
+---
+
+## Context
+
+Our webhook delivery system must authenticate outbound HTTP notifications to
+merchant endpoints so merchants can verify requests originate from us. We
+deliver approximately 2M events/day to ~8,000 merchant endpoints. Merchants
+implement their verification logic in a variety of languages (PHP, Node, Python,
+Ruby). The verification mechanism must be straightforward to implement in any
+language without a dedicated SDK.
+
+---
+
+## Decision
+
+**We will sign webhook payloads using HMAC-SHA256 with a per-merchant secret.**
+
+The signature is computed over the raw request body and transmitted in a
+`X-Signature-SHA256` header. Merchants verify the signature by computing
+HMAC-SHA256 with their stored secret and comparing the result. A timestamp
+header (`X-Timestamp`) is included; signatures older than 5 minutes are rejected
+to prevent replay attacks.
+
+---
+
+## Rationale
+
+HMAC-SHA256 with a static per-merchant secret requires no token rotation
+infrastructure and is trivially implementable in any language using standard
+library crypto primitives. The payload integrity guarantee (signature covers
+the full request body) exceeds what bearer tokens provide.
+
+---
+
+## Alternatives Considered
+
+### Option 1: Bearer tokens (rotating JWT)
+
+**What it is:** Each merchant receives a rotating JWT. We include the token
+in the Authorization header. Merchants verify the token against our JWKS
+endpoint.
+
+**Why it was rejected:**
+- Requires merchants to implement token refresh logic; significantly increases
+  integration complexity for simple use cases.
+- Introduces a dependency on our JWKS endpoint availability during webhook
+  processing — if our JWKS endpoint is down, merchants cannot verify webhooks.
+- Does not provide payload integrity — a MITM could modify the body while the
+  token remains valid.
+
+**What we lose by not choosing it:** Standardized OAuth2/JWT ecosystem tooling.
+
+---
+
+### Option 2: Mutual TLS (mTLS)
+
+**What it is:** Merchants present a client certificate; we verify it before
+delivering the webhook.
+
+**Why it was rejected:**
+- Certificate provisioning and rotation is operationally complex for merchants,
+  especially small businesses with no dedicated infrastructure team.
+- Incompatible with our target of easy onboarding in < 15 minutes.
+
+**What we lose by not choosing it:** Stronger transport-layer identity guarantee.
+
+---
+
+## Consequences
+
+### Positive Consequences
+
+- No token rotation infrastructure required on either side.
+- Implementable in < 20 lines in any language; reduces merchant integration time.
+- Payload integrity validated — tampering invalidates the signature.
+- Replay attack window closed by 5-minute timestamp validation.
+
+### Negative Consequences / Trade-offs
+
+- Per-merchant secret must be securely stored on our side (encrypted at rest).
+- If a merchant's secret is compromised, all their webhooks are at risk until
+  secret rotation is triggered.
+- No centralized revocation — secret rotation requires merchant action.
+
+### Risks Introduced
+
+| Risk | Probability | Impact | Mitigation |
+| :--- | :--- | :--- | :--- |
+| Secret compromise via merchant-side storage | Medium | High | Force HTTPS delivery; provide secret rotation endpoint; alert on unusual delivery patterns |
+| Clock skew > 5 min between our infra and merchant | Low | Medium | Use NTP; allow ±5 min window with clear error message for out-of-window requests |
+
+---
+
+## Assumptions That Could Invalidate This Decision
+
+| # | Assumption | How to Verify | Consequence If False |
+| :--- | :--- | :--- | :--- |
+| 1 | Merchants can store a static secret securely | Integration audit | Need to evaluate certificate-based auth |
+| 2 | 5-minute timestamp window is sufficient for all merchant infra | Monitor timestamp deltas in delivery logs | Adjust window or implement NTP requirement |
+
+---
+
+## References
+
+- [Stripe webhook signing documentation](https://stripe.com/docs/webhooks/signatures)
+- [GitHub webhook signing](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries)
+```
+
+## Handoff
+
+**Reads from:**
+- `4-technical-specification.md` — requirements and constraints that inform the decision context
+- `7-system-architecture.md` — existing architectural context and prior ADR log
+
+**Feeds into:**
+- `8-database-design-document.md` — data model decisions influenced by this ADR
+- `9-api-design-document.md` — API design choices informed by this ADR
+- `14-technical-blueprint.md` — implementation decisions referencing this ADR
+- `15-implementation-plan.md` — build sequencing informed by this ADR
+- `7-system-architecture.md` — ADR log summary table updated
+
+## Quality gate
+
+Before changing status from `Proposed` to `Accepted`, verify:
+
+- [ ] The Context section describes the problem without advocating for the chosen solution — a reader understands the problem space without any prior knowledge
+- [ ] At least two alternatives are documented with specific, evidence-based rejection reasons (not "too complex" without evidence)
+- [ ] Both positive **and** negative consequences are listed honestly, including new risks introduced
+- [ ] The Decision section is specific enough that an engineer can implement it without follow-up questions
+- [ ] At least one other senior engineer has reviewed and approved before status changes to `Accepted`

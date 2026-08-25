@@ -1,0 +1,245 @@
+---
+title: "api-design-document skill: REST/OpenAPI 3.1 contract with RFC 7807 errors"
+sidebarTitle: "API Design"
+description: "Generate a production-ready API design document covering resource modeling, endpoint contracts, OpenAPI 3.1 snippets, versioning strategy, RFC 7807 error handling, and rate limiting."
+---
+
+The **api-design-document** skill produces a complete interface contract for a new or revised REST API — covering resource modeling, endpoint specifications, authentication, versioning, RFC 7807 error handling, rate limiting, pagination, idempotency, webhooks, and an OpenAPI 3.1 YAML snippet. It applies Richardson Maturity Model principles, HTTP semantics, and security-first design to define everything a consumer or implementer needs to know before the first line of code is written.
+
+<Info>
+| Property | Value |
+| :--- | :--- |
+| **Type** | Workflow |
+| **Estimated time** | 3–6 hours |
+| **Standards** | OpenAPI 3.1, RFC 7807 Problem Details, RFC 9110, Richardson Maturity Model Level 2+ |
+| **Output file** | `.engineering-docs/9-api-design-document.md` |
+| **Conditional?** | Always core — invoke for any REST, GraphQL, or event-driven API |
+</Info>
+
+## Best for
+
+- Designing a new REST API or endpoint set from scratch
+- Defining the API contract for a microservice before implementation begins
+- Reviewing and improving an existing API design before it goes public
+- Standardizing API conventions across a team or organization
+
+## What it produces
+
+The generated document covers:
+
+1. **Overview** — API purpose, consumer table (who calls it and how), design principles
+2. **Resource model** — Mermaid ERD of domain entities, ownership map (who can read/write each resource)
+3. **Authentication & authorization** — token mechanism, role table, service-layer enforcement rule
+4. **Versioning strategy** — URI vs. header versioning decision, deprecation timeline, `Sunset`/`Deprecation` headers
+5. **Endpoint specifications** — per-endpoint: method, path, query/path params, request schema, response schema (with examples), status codes, authorization, error conditions
+6. **Error handling** — RFC 7807 Problem Details schema, standard error catalog (400–503)
+7. **Rate limiting** — per-consumer limits, `X-RateLimit-*` headers, `Retry-After` behavior
+8. **Pagination** — offset or cursor-based wrapper schema, default/maximum page sizes
+9. **Idempotency** — which POST endpoints require `Idempotency-Key`, collision behavior
+10. **Webhooks** — event catalog, HMAC-SHA256 signing, retry policy, DLQ
+11. **File upload/download**, **CORS configuration**, **batch operations**, **conditional requests** (ETags), **caching strategy**, **health check endpoints**, **soft-delete vs. hard-delete**
+12. **OpenAPI 3.1 YAML snippet** — syntactically valid, covers all core endpoints
+13. **Breaking vs. non-breaking changes** reference table
+14. **Security checklist** and **alternatives considered**
+
+## How to invoke it
+
+<CodeGroup>
+```bash Claude Code
+claude "Design the REST API for our payment links microservice" --skill api-design-document
+```
+
+```bash Gemini CLI
+gemini "Write an API design document for our merchant webhook management endpoints" --skill api-design-document
+```
+
+```bash Generic (npx)
+npx engineering-docs api-design-document "Design the API contract for a new B2B partner integration"
+```
+</CodeGroup>
+
+<Tip>
+Provide the AI with consumer use cases, domain entities, authentication context, and known performance requirements alongside the skill name. The richer the context, the less the Socratic interview phase needs to ask.
+</Tip>
+
+## Example scenarios
+
+<CardGroup cols={2}>
+  <Card title="Payment links service" icon="link">
+    "Design the REST API for our payment links microservice — merchants create, list, and deactivate links; customers pay via the link; HMAC webhooks fire on payment."
+  </Card>
+  <Card title="Webhook management" icon="webhook">
+    "Write an API design document for our merchant webhook management endpoints — registration, secret rotation, delivery status, and retry triggering."
+  </Card>
+  <Card title="B2B partner integration" icon="handshake">
+    "Design the API contract for a new B2B partner integration that lets partners query merchant status and submit batch transactions."
+  </Card>
+  <Card title="Convention standardization" icon="list-check">
+    "Audit our existing endpoints against RFC 7807, URI versioning, and pagination standards, then produce a design document for the revised surface."
+  </Card>
+</CardGroup>
+
+## Key concepts
+
+<Accordion title="Richardson Maturity Model — target Level 2+">
+- **Level 0:** Single endpoint, single verb — not REST
+- **Level 1:** Resources with unique URIs
+- **Level 2:** HTTP methods and status codes used correctly — this is the **minimum standard** the skill enforces
+- **Level 3:** Hypermedia controls (HATEOAS) — optional for discovery-driven APIs
+
+Resources are nouns, not verbs: `POST /payments` rather than `/createPayment`. Plural nouns for collections: `/users`, not `/user`. Nested resources imply ownership: `GET /merchants/{id}/transactions`.
+</Accordion>
+
+<Accordion title="RFC 7807 Problem Details — the error standard">
+Every error response follows this schema — no mixing of `{ "error": "msg" }` with structured responses:
+
+```json
+{
+  "type": "https://errors.example.com/validation-error",
+  "title": "Validation Error",
+  "status": 422,
+  "detail": "The amount field must be greater than 0.",
+  "instance": "/v1/payment-links/abc123",
+  "request_id": "req_01HXYZ",
+  "errors": [{ "field": "amount", "code": "invalid_range", "message": "Must be > 0" }]
+}
+```
+
+The skill applies RFC 7807 uniformly across all endpoints.
+</Accordion>
+
+<Accordion title="Versioning strategy — URI vs. header">
+**URI versioning** (`/v1/`, `/v2/`) — simple, explicit, cacheable. Recommended for public APIs.
+
+**Header versioning** (`Accept: application/vnd.api+json;version=2`) — cleaner URLs but harder to test in browsers and curl.
+
+The skill picks one and applies it consistently. Deprecated versions advertise the sunset date via `Deprecation` and `Sunset` response headers with a `Link: rel="successor-version"` pointer.
+</Accordion>
+
+<Accordion title="Idempotency keys — safe POST retries">
+POST operations are not naturally idempotent. For any POST that creates a resource or triggers a side effect, the skill requires an `Idempotency-Key: <UUID>` header. The server stores key + response for 24 hours and returns the cached response on duplicate keys without re-executing. Duplicate keys with a different request body return HTTP 422 `idempotency-key-mismatch`.
+</Accordion>
+
+<Accordion title="Pagination — no unbounded list endpoints">
+Every list endpoint must be paginated. Offset pagination example:
+
+```json
+{
+  "data": [...],
+  "pagination": {
+    "page": 1,
+    "per_page": 20,
+    "total": 142,
+    "total_pages": 8,
+    "has_next": true,
+    "has_prev": false
+  }
+}
+```
+
+Default page size, maximum page size (e.g., 100), and the pagination mechanism are specified per endpoint.
+</Accordion>
+
+<Accordion title="Webhook specification — HMAC-SHA256 signing">
+When the API sends outbound callbacks, the skill documents: the event catalog, JSON payload schema per event type, HMAC-SHA256 signature scheme with `X-Webhook-Signature` and `X-Webhook-Timestamp` headers, retry count and backoff strategy, dead-letter queue behavior, and endpoint registration with challenge-response verification.
+</Accordion>
+
+<Accordion title="HTTP semantics reference">
+| Method | Idempotent? | Safe? | Use For |
+| :--- | :--- | :--- | :--- |
+| GET | Yes | Yes | Read resource(s) |
+| POST | No | No | Create resource, non-idempotent action |
+| PUT | Yes | No | Replace resource entirely |
+| PATCH | No | No | Partial update |
+| DELETE | Yes | No | Remove resource |
+</Accordion>
+
+## Interview process
+
+The skill runs a structured interview before drafting — reading all prior `.engineering-docs/` files first to avoid re-asking known facts.
+
+<Steps>
+  <Step title="Phase 1: Socratic clarification (mandatory)">
+    Up to 3 questions via tool calls covering: protocol & encoding (REST/GraphQL/event-driven), expected rate limit parameters, payload sizing, and pagination needs. Answers are used directly; the agent does not ask questions already answered in prior documents.
+  </Step>
+  <Step title="Phase 2: Resource model (40–60 min)">
+    Identify all resources, their relationships, and the operations each supports. Produce a Mermaid ERD and ownership map.
+  </Step>
+  <Step title="Phase 3: Endpoint design (1–2 hrs)">
+    Define each endpoint: method, path, request schema, response schema, status codes, authorization requirements.
+  </Step>
+  <Step title="Phase 4: Cross-cutting concerns (40–60 min)">
+    Authentication, versioning strategy, rate limiting, pagination, error handling, CORS, caching, and health checks.
+  </Step>
+  <Step title="Phase 5: OpenAPI 3.1 snippet (60–90 min)">
+    Produce a syntactically valid OpenAPI YAML snippet covering all core endpoints with `$ref` component reuse.
+  </Step>
+  <Step title="Phase 6: Revision (after user review)">
+    Apply requested changes — cascading through endpoint definitions, request/response schemas, and the OpenAPI YAML. Re-run consistency checks. Update `last_updated`.
+  </Step>
+</Steps>
+
+## Output structure
+
+The generated `.engineering-docs/9-api-design-document.md` follows this structure:
+
+```
+1. Overview (purpose, consumers, design principles)
+2. Resource Model (Mermaid ERD + ownership map)
+3. Authentication and Authorization
+4. API Versioning (strategy + deprecation policy)
+5. Endpoint Specifications (per-resource groups)
+6. Error Handling (RFC 7807 schema + error catalog)
+7. Rate Limiting (per-consumer limits + headers)
+8. Pagination (wrapper schema + defaults)
+9. Idempotency (endpoints requiring keys + behavior)
+10. Webhook Specification (event catalog + delivery config)
+11. File Upload/Download
+12. CORS Configuration
+13. Batch Operations
+14. Caching Strategy
+15. Health Check Endpoints
+16. Soft-Delete vs Hard-Delete (per resource)
+17. OpenAPI 3.1 Snippet (YAML)
+18. Breaking vs Non-Breaking Changes
+19. Security Checklist
+20. Alternatives Considered
+```
+
+**Target length:** 10–15 pages excluding appendices.
+
+## Handoff
+
+<CardGroup cols={2}>
+  <Card title="Reads from" icon="arrow-down">
+    - `4-technical-specification.md` — functional requirements, use cases
+    - `7-system-architecture.md` — tech stack, architectural patterns
+    - `8-database-design-document.md` — data model, entities, relationships
+  </Card>
+  <Card title="Feeds into" icon="arrow-up">
+    - `11-admin-access-control-specification.md` — API actions that need permissions
+    - `12-security-threat-model.md` — API surface for threat modeling
+    - `14-technical-blueprint.md` — API contracts in feature designs
+    - `15-implementation-plan.md` — endpoints sequenced in build phases
+  </Card>
+</CardGroup>
+
+## Quality gate
+
+Before marking the document `final`, every item below must be checked:
+
+- [ ] Every endpoint specifies method, path, request schema, response schema, status codes, and authorization requirements
+- [ ] All error responses follow RFC 7807 Problem Details format consistently across all endpoints
+- [ ] Every list endpoint has pagination defined with both default and maximum page sizes
+- [ ] The security checklist has all items checked or explicitly waived with written justification
+- [ ] The OpenAPI 3.1 snippet is syntactically valid and covers all core endpoints
+
+<Warning>
+**Common gotchas** — the skill's consistency checks catch these, but they're worth knowing:
+
+- Using verb paths (`/createPayment`) instead of noun resources (`POST /payments`)
+- Omitting pagination on any list endpoint — unbounded `GET /payments` will eventually OOM
+- Inconsistent error formats across endpoints — consumers cannot build reliable error handling if formats vary
+- Enforcing authorization at the routing layer only — a valid token does not mean the user owns the resource
+- Treating additive response fields as breaking changes, or treating removed fields as non-breaking
+</Warning>

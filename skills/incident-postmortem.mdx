@@ -1,0 +1,239 @@
+---
+title: "incident-postmortem skill: blameless RCA with Five Whys analysis"
+sidebarTitle: "Incident Postmortem"
+description: "Produce a blameless post-incident review with precise timeline, Five Whys root cause analysis, quantified impact, and owner-assigned action items following Google SRE culture."
+---
+
+The `incident-postmortem` skill produces a blameless post-incident review that transforms a production incident from a painful failure into a permanent improvement in system reliability. The core principle is that incidents are caused by systemic failures, not individual mistakes. Attacking people instead of systems destroys the psychological safety that enables honest postmortems — and an honest postmortem is the only one worth writing. This is a **reactive skill only**: it is invoked after a real production incident (or a near-miss), never scheduled upfront.
+
+<Info>
+**Type:** Component · **Estimated time:** 1–2 hours · **Standards:** Google SRE blameless post-mortem culture; Five Whys RCA · **Output file:** `.engineering-docs/20-incident-postmortem-[INC-ID].md` · **Reactive only** — never plan this document in advance. Invoke it after a real production incident or a near-miss that reveals a system gap.
+</Info>
+
+## Best for
+
+<CardGroup cols={2}>
+  <Card title="Production incidents" icon="triangle-exclamation">
+    After any production incident affecting users or breaching an SLA — from a full payment outage (SEV-1) to a 5-minute performance degradation (SEV-4).
+  </Card>
+  <Card title="Near-miss reviews" icon="eye">
+    After any near-miss caught before user impact — a bad deployment stopped in staging, an alert that self-resolved, a backup gap found during a drill.
+  </Card>
+  <Card title="Reliability culture" icon="people-group">
+    Building an organizational practice of continuous reliability improvement where every incident produces durable improvements, not just a fix.
+  </Card>
+  <Card title="Compliance reporting" icon="clipboard-check">
+    Satisfying compliance or contractual obligations for incident reporting, with documented root cause, impact quantification, and remediation actions.
+  </Card>
+</CardGroup>
+
+## What it produces
+
+The generated postmortem covers the full lifecycle of an incident from detection through systemic remediation:
+
+| Section | Purpose |
+|:---|:---|
+| **Severity Classification & Decision Tree** | Objective SEV-1 through SEV-4 classification with re-classification log |
+| **Incident Commander record** | IC designation, responsibilities checklist, handoff documentation (SEV-1/SEV-2) |
+| **Executive Summary** | 3–5 sentences for non-technical stakeholders — the only section a senior executive needs to read |
+| **Impact Assessment** | User impact, business impact (transactions failed, revenue, SLA status), service health metrics at peak |
+| **Timeline** | Precise timestamps for every event from first symptom to all-clear |
+| **Root Cause Analysis** | Proximate cause + Five Whys drilling at least 4 layers deep |
+| **Root Cause Categories** | Typed for quarterly trending: testing gap, observability gap, deployment control gap, etc. |
+| **What Went Well** | Reinforces effective incident responses — not an optional section |
+| **What Went Poorly** | Honest systemic failures, phrased without individual blame |
+| **Action Items** | Named owner, due date, and measurable success criterion — no vague intentions |
+| **Action Item Tracking** | Escalation policy for overdue items; weekly review cadence |
+| **Lessons Learned** | Distilled team learnings that inform future design reviews and on-call training |
+| **Statistical Analysis** | MTTD, MTTR, root cause category — for quarterly trending |
+| **Communication Log** | All external communications (status page, customer emails) during the incident |
+| **Incident Response Tooling** | PagerDuty, OpsGenie, Slack channel conventions, status page templates |
+
+## How to invoke it
+
+Pass the incident name or ID and a description of what happened. The richer the context — timeline points, monitoring data, what was done to mitigate — the more complete and accurate the first draft will be.
+
+<CodeGroup>
+```bash Claude Code
+claude "Write a post-mortem for the incident on 2026-07-09 where the payment gateway returned 500 errors for 22 minutes affecting 8% of payment attempts. The root cause was a database connection pool exhaustion triggered by a slow query introduced in the v2.3.0 deployment 2 hours earlier."
+```
+
+```bash Gemini CLI
+gemini "Write a post-mortem for the incident on 2026-07-09 where the payment gateway returned 500 errors for 22 minutes affecting 8% of payment attempts. The root cause was a database connection pool exhaustion triggered by a slow query introduced in the v2.3.0 deployment 2 hours earlier."
+```
+
+```bash Generic / npx
+npx engineering-docs incident-postmortem "INC-20260709 payment gateway outage"
+```
+</CodeGroup>
+
+## Example scenarios
+
+<Accordion title="Payment processing outage">
+  `Write a post-mortem for last night's payment processing outage`
+
+  Produces a SEV-2 postmortem with a timestamped timeline from alert to all-clear, Five Whys analysis tracing from connection pool exhaustion back to a missing index in staging, and action items for connection utilization alerting, slow query logging, and staging data volume parity.
+</Accordion>
+
+<Accordion title="Database connection exhaustion">
+  `Document the root cause of the database connection exhaustion incident`
+
+  Produces a precise root cause analysis showing why the query was not caught in testing, why monitoring did not alert before the pool was fully exhausted, and why staging did not replicate production data volume — with the deployment control gate that would have caught it.
+</Accordion>
+
+<Accordion title="API timeout affecting a subset of users">
+  `Create a blameless review of the API timeout that affected 15% of users`
+
+  Produces a SEV-3 postmortem with quantified impact (users affected, requests failed), a timeline from first timeout to mitigation, and root causes classified for trending: observability gap (no p99 alert at warning threshold) and architecture gap (no circuit breaker on the slow downstream dependency).
+</Accordion>
+
+## Key concepts
+
+### Blameless culture
+
+People do not cause incidents. Systems do. When an engineer makes a mistake that leads to an incident, the real questions are:
+
+- Why did the system allow that mistake to have this impact?
+- What alerting, testing, or deployment control would have prevented it?
+- What process would have caught this before production?
+
+Blameless does not mean consequence-free. It means the postmortem focuses on systemic remediation, not individual punishment. Every finding must be phrased as a system gap — never "engineer X failed to check" or "the developer forgot."
+
+### Five Whys analysis
+
+The skill enforces at least four layers of "Why?" past the proximate cause. The proximate cause is almost always "a bad change was deployed." The real causes are deeper:
+
+| # | Why? | Typical finding |
+|:---|:---|:---|
+| Why 1 | Why did the service return errors? | Technical proximate cause |
+| Why 2 | Why did the bad change reach production? | Testing or CI gap |
+| Why 3 | Why did monitoring not alert earlier? | Observability gap |
+| Why 4 | Why was the impact this broad? | Blast radius / architecture gap |
+| Why 5 | Why didn't staging catch it? | Environment parity gap |
+
+Each root cause is classified into a standard category for quarterly trending: `Testing gap` · `Observability gap` · `Deployment control gap` · `Architecture gap` · `Process gap` · `Knowledge gap` · `Third-party dependency`.
+
+### Severity classification
+
+The postmortem includes a structured decision tree that classifies severity objectively — before the full impact is known — and supports re-classification as more information becomes available:
+
+| Severity | Definition | Example |
+|:---|:---|:---|
+| **SEV-1** | Complete service outage; all users affected | Payment gateway returning 100% 5xx |
+| **SEV-2** | Partial outage; significant user impact (>10%) | 20% of payments failing |
+| **SEV-3** | Degraded performance; subset of users affected | p99 latency > 2s for 15 minutes |
+| **SEV-4** | Minor issue; minimal user impact | Admin panel slow for 5 minutes |
+
+### Incident Commander role
+
+For SEV-1 and SEV-2 incidents, an Incident Commander (IC) is designated. The IC owns the incident response — coordination, communication, go/no-go decisions — without performing the technical debugging. The postmortem documents IC designation time, responsibilities checklist, and any IC handoffs (shift change, fatigue) with status briefing summaries.
+
+### Action items with teeth
+
+Every action item must have three things to be valid: a **named owner** (a person, not a team), a **due date**, and a **measurable success criterion** that proves it is done. "Improve monitoring" is not an action item. "Add DB connection utilization alert at 80% threshold and verify it fires in staging test by YYYY-MM-DD, owned by [Name]" is an action item.
+
+Action items are tracked in a system that supports deadlines and assignees (Jira, Linear, GitHub Issues — not a wiki table), reviewed weekly by the postmortem author, and escalated to engineering management if overdue by more than two weeks.
+
+### Near-miss postmortems
+
+Near-misses are incidents caught before user impact. They deserve postmortems because a near-miss today is a real incident tomorrow if the underlying gap is not fixed. The format is identical to a full postmortem; the Impact Assessment documents potential impact rather than actual impact. Organizations that only write postmortems for real incidents inadvertently incentivize under-reporting.
+
+### Statistical tracking across postmortems
+
+The postmortem includes a statistical analysis section for quarterly trending: MTTD, MTTR, root cause category, and action item completion rate. These metrics, aggregated across incidents, reveal systemic patterns that no single postmortem can surface on its own.
+
+## Interview process
+
+The agent asks targeted questions before drafting, first loading prior `.engineering-docs/` files to extract the known tech stack, SLO targets, and runbook procedures:
+
+<Steps>
+  <Step title="Context loading">
+    Reads existing documents (technical-runbook, SLO document, deployment-plan) to understand the service's alert thresholds, on-call procedures, and any prior related incidents.
+  </Step>
+  <Step title="Symptom and detection (≤ 2–3 questions)">
+    Confirms how the incident was first noticed (automated alert, customer support ticket, internal observation) and through which channel.
+  </Step>
+  <Step title="Timeline points">
+    Collects key timestamps: incident start, detection, first mitigation, full resolution, and any re-classification events.
+  </Step>
+  <Step title="Failure impact">
+    Quantifies the business impact — number of failed requests, affected users, revenue estimate, SLA breach status — in concrete terms, not approximations.
+  </Step>
+  <Step title="Document generation">
+    Writes the timeline, performs Five Whys, quantifies impact, classifies root causes, and generates specific action items with owners.
+  </Step>
+  <Step title="Revision and sharing">
+    Incorporates feedback; checks cross-document consistency (action items must align with runbook procedures and system architecture); shares with the team within 24–48 hours of resolution.
+  </Step>
+</Steps>
+
+## Output structure
+
+The generated `.engineering-docs/20-incident-postmortem-[INC-ID].md` mirrors the full template:
+
+```markdown title="20-incident-postmortem-INC-[ID].md (structure)"
+# Incident Post-Mortem
+
+> Blamelessness Statement
+
+## 0. Severity Classification & Incident Commander
+  ### 0.1 Severity Classification Decision Tree
+  ### 0.2 Incident Commander Record (SEV-1/SEV-2)
+
+## 1. Executive Summary
+## 2. Impact Assessment
+  ### 2.1 User Impact
+  ### 2.2 Business Impact           ← transactions, revenue, SLA status
+  ### 2.3 Service Health Metrics    ← baseline vs. peak during incident
+## 3. Timeline                      ← precise UTC timestamps, every event
+## 4. Root Cause Analysis
+  ### 4.1 Proximate Cause
+  ### 4.2 Five Whys Analysis        ← ≥ 4 layers deep
+  ### 4.3 Root Causes (typed for trending)
+  ### 4.4 What Went Well
+  ### 4.5 What Went Poorly
+## 5. Action Items                  ← named owner, due date, success criterion
+  ### 5.1 Action Item Tracking Process
+## 6. Lessons Learned
+## 7. Statistical Analysis           ← MTTD, MTTR, quarterly trending
+## 8. Communication Log              ← all external comms during the incident
+## 9. Appendix                       ← monitoring screenshots, log excerpts
+## 10. Incident Response Tooling     ← PagerDuty, Slack conventions, status page
+```
+
+## Handoff
+
+<CardGroup cols={2}>
+  <Card title="Reads from" icon="arrow-down">
+    - `17-technical-runbook.md` — operational procedures followed (or not) during the incident
+    - `19-slo-error-budget.md` — SLO targets to measure impact and classify breach severity
+    - `16-deployment-plan.md` — deployment that may have triggered the incident
+    - Monitoring data — timeline, metrics, log excerpts
+  </Card>
+  <Card title="Feeds into" icon="arrow-up">
+    - `17-technical-runbook.md` — updated response procedures based on lessons learned
+    - `15-test-strategy.md` — new test cases to prevent recurrence of root causes
+    - `7-system-architecture.md` — architecture changes to reduce blast radius
+    - `18-disaster-recovery.md` — DR gaps discovered during the incident
+  </Card>
+</CardGroup>
+
+## Quality gate
+
+Before marking the postmortem `final`, verify every item in this checklist:
+
+- [ ] The timeline has precise timestamps for every event from first symptom to all-clear
+- [ ] The Five Whys analysis goes at least 4 layers deep past the proximate cause
+- [ ] Every action item has a named owner, due date, and measurable success criterion
+- [ ] The document contains zero blameful language targeting individuals
+- [ ] Impact is quantified with concrete metrics (users affected, transactions failed, revenue impact)
+- [ ] Severity is classified using the decision tree and justified
+- [ ] Incident Commander is designated (for SEV-1/SEV-2) and their responsibilities are documented
+- [ ] Action items are tracked in a system with deadlines and a weekly review cadence
+- [ ] Root cause categories are assigned for statistical trending
+- [ ] Near-miss incidents have a postmortem if they reveal system gaps
+- [ ] Incident response tooling is documented (PagerDuty/OpsGenie/incident.io configuration)
+
+<Note>
+**Timing:** Publish the postmortem draft within 24–48 hours of incident resolution while the timeline is fresh. Hold the postmortem review meeting within 48–72 hours. Action items enter the team's next sprint planning cycle immediately.
+</Note>

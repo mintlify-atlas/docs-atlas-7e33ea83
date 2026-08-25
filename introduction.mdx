@@ -1,0 +1,187 @@
+---
+title: "Engineering Docs: 22 AI Documentation Skills for Engineers"
+sidebarTitle: "Introduction"
+description: "Engineering Docs is an open-source npm plugin that gives AI coding agents 22 composable documentation skills — from raw idea to production-ready blueprint."
+---
+
+Engineering Docs (`engineering-docs`) is an open-source npm plugin that transforms any AI coding agent into a principal-level documentation engineer. Instead of asking your agent to write a single document and hoping it knows the right questions to ask, Engineering Docs installs 22 composable, auto-triggering skills that guide your agent through the full software lifecycle — from the first rough idea all the way to deployment runbooks and incident postmortems. The plugin works across 14+ agent platforms and produces cross-consistent, industry-standard documents that a developer — or another AI agent — can pick up cold and build from.
+
+## Why Engineering Docs?
+
+Coding agents are powerful, but they start every conversation without knowing your project's architecture, your users, or your constraints. Engineering Docs solves this by equipping your agent with the same structured thinking a principal engineer applies before a line of code is written.
+
+<CardGroup cols={2}>
+  <Card title="Turn ideas into blueprints" icon="lightbulb">
+    Go from a business concept to a complete technical specification, architecture, and deployment plan — automatically.
+  </Card>
+  <Card title="Ask the right questions" icon="comments">
+    Tool-call interviews surface exactly what each document needs. No repeated questions, no conversation pollution.
+  </Card>
+  <Card title="Industry-standard output" icon="file-certificate">
+    ISO/IEC/IEEE 29148, C4 Model, STRIDE, OpenAPI 3.1, Google SRE — every document follows the spec your team expects.
+  </Card>
+  <Card title="Works everywhere" icon="grid">
+    Claude Code, Copilot, Cursor, Gemini CLI, Goose, Kimi Code, Cline, and 7+ more platforms. One install command each.
+  </Card>
+</CardGroup>
+
+---
+
+## The 22 Skills
+
+Every skill is an independent, callable unit with its own interview process, template, and quality gate. The orchestrator (`using-engineering-docs`) routes between all 22 skills automatically — you never need to know a skill's name to get its output.
+
+### Discovery & Planning
+
+<CardGroup cols={2}>
+  <Card title="using-engineering-docs" icon="compass">
+    **Orchestrator.** Takes a raw idea and routes to all other skills automatically. Start here for any new project.
+  </Card>
+  <Card title="business-concept" icon="building">
+    Problem statement, target users, value proposition, monetization model, and project constraints.
+  </Card>
+  <Card title="project-plan" icon="calendar">
+    Scope, milestones, RACI matrix, timeline, and a full work breakdown structure.
+  </Card>
+  <Card title="user-personas-behavior" icon="users">
+    User personas, jobs-to-be-done, success metrics, and analytics instrumentation plan.
+  </Card>
+</CardGroup>
+
+### Specification & Feasibility
+
+<CardGroup cols={2}>
+  <Card title="technical-specification" icon="list-check">
+    Functional and non-functional requirements in SRS/TSD format with EARS syntax and a full traceability matrix.
+  </Card>
+  <Card title="technical-feasibility-study" icon="flask">
+    Go/no-go recommendation with evidence for any technically uncertain part of your idea.
+  </Card>
+</CardGroup>
+
+### Architecture & Design
+
+<CardGroup cols={2}>
+  <Card title="system-architecture-document" icon="sitemap">
+    C4 diagrams, 4+1 views, tech stack selection, and non-functional requirements.
+  </Card>
+  <Card title="architecture-decision-record" icon="bookmark">
+    Immutable ADR log in MADR format — one record per significant technical decision.
+  </Card>
+  <Card title="database-design-document" icon="database">
+    ERD, normalized schema, indexing strategy, and a versioned migration plan.
+  </Card>
+  <Card title="api-design-document" icon="plug">
+    REST/OpenAPI 3.1 contract, resource definitions, auth scheme, versioning, and RFC 7807 error shapes.
+  </Card>
+  <Card title="admin-access-control-specification" icon="lock">
+    RBAC permission matrix, audit logging requirements, and break-glass access procedures.
+  </Card>
+  <Card title="technical-blueprint" icon="drafting-compass">
+    Google/Stripe-quality technical design document per feature — one blueprint per non-trivial component.
+  </Card>
+  <Card title="ux-flow-specification" icon="arrow-pointer">
+    User journeys, screen-by-screen flows, and every UI state including edge cases and error states.
+  </Card>
+  <Card title="design-system-specification" icon="palette">
+    Design tokens, component library, spacing system, and accessibility compliance requirements.
+  </Card>
+</CardGroup>
+
+### Quality & Risk
+
+<CardGroup cols={2}>
+  <Card title="security-threat-model" icon="shield">
+    STRIDE-based threat analysis, attack surface map, risk register, and ordered mitigations.
+  </Card>
+  <Card title="test-strategy-document" icon="vial">
+    Testing pyramid, mocking strategy, CI quality gates, and coverage targets by layer.
+  </Card>
+  <Card title="implementation-plan" icon="list-ol">
+    Dependency-ordered build sequence with phase gates, so developers start in the right order.
+  </Card>
+</CardGroup>
+
+### Delivery & Operations
+
+<CardGroup cols={2}>
+  <Card title="deployment-plan" icon="rocket">
+    Release strategy, environment promotion flow, go/no-go gate criteria, and rollback procedures.
+  </Card>
+  <Card title="slo-error-budget-document" icon="chart-line">
+    SLI/SLO targets, error budget policy, and burn-rate alert thresholds following Google SRE patterns.
+  </Card>
+  <Card title="technical-runbook" icon="book-open">
+    On-call operations manual with step-by-step procedures for every known failure mode.
+  </Card>
+  <Card title="disaster-recovery-plan" icon="shield-halved">
+    RTO/RPO targets, backup strategy, failover runsheets, and annual DR test schedule.
+  </Card>
+  <Card title="incident-postmortem" icon="magnifying-glass">
+    Blameless root-cause analysis using Five Whys — generated reactively after any production incident.
+  </Card>
+</CardGroup>
+
+---
+
+## Custom Agents
+
+Engineering Docs also ships four custom agent definitions — pre-configured personas your agent platform can invoke directly for focused tasks without running the full orchestration pipeline.
+
+| Agent | Model | What It Does |
+|:---|:---|:---|
+| `documentation-generator` | Sonnet | Generates production-ready documentation for any software project, following ISO/IEC/IEEE 29148, C4, and OpenAPI 3.1 standards |
+| `architecture-reviewer` | Sonnet | Reviews system architecture for scalability, security, and maintainability — outputs actionable findings sorted by severity |
+| `api-designer` | Sonnet | Designs RESTful APIs with OpenAPI 3.1 specs, RFC 7807 error shapes, versioning strategy, and auth scheme |
+| `test-strategist` | Sonnet | Builds a full test strategy with pyramid breakdown, tooling recommendations, CI gates, and coverage targets |
+
+---
+
+## Multi-Agent Compatibility
+
+Engineering Docs installs natively on 14 agent platforms. The same 22 skills work identically regardless of which agent runs them.
+
+| Platform | Install Method |
+|:---|:---|
+| **Claude Code** | `/plugin install engineering-docs@claude-plugins-official` |
+| **Gemini CLI** | `gemini extensions install https://github.com/fattain-naime/engineering-docs` |
+| **Cursor / Windsurf** | `npx engineering-docs --cursor` |
+| **GitHub Copilot** | `npx engineering-docs --copilot` |
+| **Goose** | `npx engineering-docs --goose` |
+| **Kimi Code** | `npx engineering-docs --kimi` |
+| **Cline** | `npx engineering-docs --cline` |
+| **Codex** | `npx engineering-docs --codex` |
+| **Pi** | `npx engineering-docs --pi` |
+| **OpenCode** | `npx engineering-docs --opencode` |
+| **Kilo Code** | `npx engineering-docs --kilo` |
+| **Roo Code** | `npx engineering-docs --roo` |
+| **Factory Droid** | `npx engineering-docs --factory` |
+
+<Note>
+Agent config files (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `COPILOT.md`, `GOOSE.md`, `PI.md`) use **safe-write** — they are only created if they don't already exist at the destination, so your existing customizations are never overwritten.
+</Note>
+
+---
+
+## Philosophy
+
+Engineering Docs is built on five principles that shape every skill's design:
+
+- **Systemic over ad-hoc** — Rigorous, reproducible processes yield safer, cleaner software than one-off documents.
+- **Traceability** — Every requirement links to a business goal and a test case. Nothing floats free.
+- **Visual-first** — Complex architectures are mapped with Git-trackable Mermaid diagrams, not prose descriptions alone.
+- **Operational safety** — No feature is complete without a deployment runsheet, monitoring plan, and rollback procedure.
+- **Blameless learning** — Production failures are data points for system hardening, not blame assignments.
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Install in under two minutes and run your first skill.
+  </Card>
+  <Card title="How It Works" icon="gears" href="/how-it-works">
+    Understand the orchestrator, interview mechanism, and six-phase pipeline in detail.
+  </Card>
+</CardGroup>

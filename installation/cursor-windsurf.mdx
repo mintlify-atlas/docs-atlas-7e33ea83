@@ -1,0 +1,127 @@
+---
+title: "Install Engineering Docs in Cursor and Windsurf"
+sidebarTitle: "Cursor & Windsurf"
+description: "Add 22 engineering documentation skills to Cursor or Windsurf as project-scoped .mdc rules — one rule file per skill, installed to .cursor/rules/ in seconds."
+---
+
+Engineering Docs uses Cursor's native rules system to deliver all 22 skills. Instead of a monolithic plugin file, the installer extracts each `SKILL.md` into its own `.mdc` rule file — giving Cursor's context engine fine-grained control over when each skill is applied. Windsurf reads the same `.cursor/rules/` directory, so one install command covers both editors.
+
+## Install with npx
+
+<Steps>
+
+  <Step title="Run the installer from your project root">
+    ```bash terminal
+    npx engineering-docs --cursor
+    ```
+    The short alias `-r` also works:
+    ```bash terminal
+    npx engineering-docs -r
+    ```
+    The installer creates `.cursor/rules/` in your current working directory if it does not already exist.
+  </Step>
+
+  <Step title="Confirm the rule files were created">
+    The installer prints one confirmation line per skill as it copies each file:
+    ```
+      created  Cursor rule: engineering-docs-using-engineering-docs.mdc
+      created  Cursor rule: engineering-docs-business-concept.mdc
+      created  Cursor rule: engineering-docs-project-plan.mdc
+      ... (22 rules total)
+    ```
+  </Step>
+
+  <Step title="Restart Cursor or Windsurf">
+    Rules in `.cursor/rules/` are loaded at editor startup. Close and reopen Cursor (or Windsurf) to activate the new rules. You do not need to configure anything else — the rules are detected automatically.
+  </Step>
+
+</Steps>
+
+<Warning>
+  **Always restart after install.** Cursor and Windsurf do not hot-reload `.cursor/rules/` changes. Skipping the restart means the skills will not be available in the current editor session.
+</Warning>
+
+## What gets created
+
+The `--cursor` flag runs a special install path in `scripts/install.js`. For every subdirectory in `skills/`, it reads the `SKILL.md` file and copies it to `.cursor/rules/` with a prefixed filename:
+
+```
+.cursor/rules/
+├── engineering-docs-using-engineering-docs.mdc
+├── engineering-docs-business-concept.mdc
+├── engineering-docs-project-plan.mdc
+├── engineering-docs-user-personas-behavior.mdc
+├── engineering-docs-technical-specification.mdc
+├── engineering-docs-technical-feasibility-study.mdc
+├── engineering-docs-system-architecture-document.mdc
+├── engineering-docs-architecture-decision-record.mdc
+├── engineering-docs-database-design-document.mdc
+├── engineering-docs-api-design-document.mdc
+├── engineering-docs-admin-access-control-specification.mdc
+├── engineering-docs-technical-blueprint.mdc
+├── engineering-docs-ux-flow-specification.mdc
+├── engineering-docs-design-system-specification.mdc
+├── engineering-docs-security-threat-model.mdc
+├── engineering-docs-test-strategy-document.mdc
+├── engineering-docs-implementation-plan.mdc
+├── engineering-docs-deployment-plan.mdc
+├── engineering-docs-slo-error-budget-document.mdc
+├── engineering-docs-technical-runbook.mdc
+├── engineering-docs-disaster-recovery-plan.mdc
+└── engineering-docs-incident-postmortem.mdc
+```
+
+Each `.mdc` file contains the full `SKILL.md` content for that skill — the auto-trigger intent, key concepts, document template structure, and behavioral standards. The `engineering-docs-` prefix keeps all rules grouped together and prevents naming collisions with your own project rules.
+
+<Note>
+  This install is **workspace-scoped**. The rules are created in the `.cursor/rules/` directory of the project where you run the command, not in a global directory. Run the install in each repository where you want the skills available, or add `.cursor/rules/` to your project starter template.
+</Note>
+
+## Install with the setup script
+
+<CodeGroup>
+
+```bash Linux / macOS
+chmod +x scripts/setup.sh
+./scripts/setup.sh --cursor
+```
+
+```powershell Windows
+pwsh scripts\setup.ps1 -Target cursor
+```
+
+</CodeGroup>
+
+Both scripts use the same Cursor-specific install logic as `npx engineering-docs --cursor` — they copy each `SKILL.md` as an individual `.mdc` rule file rather than copying the full plugin tree.
+
+## Cursor plugin manifest
+
+The repository also ships a `plugin.json` at `integrations/plugins/.cursor-plugin/plugin.json` for editors that consume a structured manifest alongside the rules:
+
+```json integrations/plugins/.cursor-plugin/plugin.json
+{
+  "name": "engineering-docs",
+  "displayName": "Engineering Documentation",
+  "description": "22 engineering documentation skills covering the complete software lifecycle.",
+  "version": "1.2.1",
+  "author": {
+    "name": "Fattain Naime",
+    "email": "iamnaime@builderhall.com"
+  },
+  "homepage": "https://github.com/fattain-naime/engineering-docs",
+  "repository": "https://github.com/fattain-naime/engineering-docs",
+  "license": "MIT",
+  "skills": "./skills/"
+}
+```
+
+## Adding to version control
+
+The `.cursor/rules/` directory is project-local. If you want the entire team to have access to the skills without each person running the installer, commit the generated `.mdc` files:
+
+```bash terminal
+git add .cursor/rules/engineering-docs-*.mdc
+git commit -m "chore: add engineering-docs Cursor rules"
+```
+
+Team members who clone the repository will have all 22 rules available as soon as they open the project in Cursor or Windsurf, without running any install command.

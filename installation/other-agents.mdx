@@ -1,0 +1,345 @@
+---
+title: "Install Engineering Docs on Goose, Pi, Cline, and more"
+sidebarTitle: "Other Agents"
+description: "Flag-by-flag install guide for Goose, Pi, OpenCode, Kilo Code, Roo Code, Cline, Factory Droid, Kimi Code, Codex, and Copilot CLI — all 22 skills, every platform."
+---
+
+Engineering Docs supports 10 additional AI coding agents beyond Claude Code, Gemini CLI, and Cursor. Each agent has its own dedicated install flag in `scripts/install.js`, a matching platform-specific manifest in the `integrations/plugins/` directory, and a supported target in both the Bash and PowerShell setup scripts. Use the tabs below to find the exact commands for your agent.
+
+<Tabs>
+
+  <Tab title="Goose">
+
+    **Install path:** `~/.config/goose/extensions/engineering-docs/` (global)
+
+    ```bash npx
+    npx engineering-docs --goose
+    ```
+
+    Alternatively, configure Goose manually by adding a new extension entry in `~/.config/goose/config.yaml` and pointing it at the cloned repository.
+
+    The plugin ships `integrations/plugins/.goose/GOOSE.md` which contains the complete auto-trigger rule table and behavioral standards. This file is copied as `GOOSE.md` (safe-write) into the install directory.
+
+    **Setup script:**
+
+    <CodeGroup>
+
+    ```bash Linux / macOS
+    ./scripts/setup.sh --goose
+    ```
+
+    ```powershell Windows
+    pwsh scripts\setup.ps1 -Target goose
+    ```
+
+    </CodeGroup>
+
+  </Tab>
+
+  <Tab title="Pi">
+
+    **Install path:** `~/.pi/packages/engineering-docs/` (global)
+
+    ```bash npx
+    npx engineering-docs --pi
+    ```
+
+    Or install directly from the git repository using Pi's native package manager:
+
+    ```bash pi native install
+    pi install git:github.com/fattain-naime/engineering-docs
+    ```
+
+    The plugin ships `integrations/plugins/.pi/PI.md` which provides Pi with the full auto-trigger rule table and the same behavioral standards used in every other agent integration. The `PI.md` file is written with safe-write semantics.
+
+    **Setup script:**
+
+    <CodeGroup>
+
+    ```bash Linux / macOS
+    ./scripts/setup.sh --pi
+    ```
+
+    ```powershell Windows
+    pwsh scripts\setup.ps1 -Target pi
+    ```
+
+    </CodeGroup>
+
+  </Tab>
+
+  <Tab title="OpenCode">
+
+    **Install path:** `.opencode/engineering-docs/` (workspace-local)
+
+    ```bash npx
+    npx engineering-docs --opencode
+    ```
+
+    OpenCode uses a workspace-local plugin directory. Run this command from your project root. The plugin manifest at `integrations/plugins/.opencode/plugin.json` references `./skills/` for skill discovery and `AGENTS.md` for instructions.
+
+    **Setup script:**
+
+    <CodeGroup>
+
+    ```bash Linux / macOS
+    ./scripts/setup.sh --opencode
+    ```
+
+    ```powershell Windows
+    pwsh scripts\setup.ps1 -Target opencode
+    ```
+
+    </CodeGroup>
+
+  </Tab>
+
+  <Tab title="Kilo Code">
+
+    **Install path:** `~/.kilo-code/plugins/engineering-docs/` (global)
+
+    ```bash npx
+    npx engineering-docs --kilo
+    ```
+
+    Kilo Code also supports marketplace installation. The plugin manifest at `integrations/plugins/.kilo-plugin/plugin.json` provides the structured metadata Kilo Code's marketplace browser reads.
+
+    **Setup script:**
+
+    <CodeGroup>
+
+    ```bash Linux / macOS
+    ./scripts/setup.sh --kilo
+    ```
+
+    ```powershell Windows
+    pwsh scripts\setup.ps1 -Target kilo
+    ```
+
+    </CodeGroup>
+
+  </Tab>
+
+  <Tab title="Roo Code">
+
+    **Install path:** `~/.roo-code/plugins/engineering-docs/` (global)
+
+    ```bash npx
+    npx engineering-docs --roo
+    ```
+
+    Roo Code also supports marketplace installation. The plugin manifest at `integrations/plugins/.roo-plugin/plugin.json` provides the structured metadata Roo Code's plugin browser reads.
+
+    **Setup script:**
+
+    <CodeGroup>
+
+    ```bash Linux / macOS
+    ./scripts/setup.sh --roo
+    ```
+
+    ```powershell Windows
+    pwsh scripts\setup.ps1 -Target roo
+    ```
+
+    </CodeGroup>
+
+  </Tab>
+
+  <Tab title="Cline">
+
+    **Install path:** `.clinerules` (workspace root, single file)
+
+    ```bash npx
+    npx engineering-docs --cline
+    ```
+
+    Cline uses a single `.clinerules` file at your project root rather than a directory of skill files. The installer copies `integrations/plugins/.cline/.clinerules` to the current working directory. This file contains all auto-trigger rules and behavioral standards in one place.
+
+    <Note>
+      This is a **workspace-scoped** install. Run it in each project where you want Cline to have access to Engineering Docs skills. There is no global install path for Cline.
+    </Note>
+
+    **Setup script:**
+
+    <CodeGroup>
+
+    ```bash Linux / macOS
+    ./scripts/setup.sh --cline
+    ```
+
+    ```powershell Windows
+    pwsh scripts\setup.ps1 -Target cline
+    ```
+
+    </CodeGroup>
+
+  </Tab>
+
+  <Tab title="Factory Droid">
+
+    **Install path:** `~/.factory/plugins/engineering-docs/` (global)
+
+    ```bash npx
+    npx engineering-docs --factory
+    ```
+
+    The plugin manifest at `integrations/plugins/.factory-plugin/plugin.json` provides Factory Droid with the structured metadata it needs to register the plugin. The full plugin tree — including all 22 skills, agents, hooks, and the MCP config — is copied to the global plugins directory.
+
+    **Setup script:**
+
+    <CodeGroup>
+
+    ```bash Linux / macOS
+    ./scripts/setup.sh --factory
+    ```
+
+    ```powershell Windows
+    pwsh scripts\setup.ps1 -Target factory
+    ```
+
+    </CodeGroup>
+
+  </Tab>
+
+  <Tab title="Kimi Code">
+
+    **Install path:** `~/.kimi-code/plugins/engineering-docs/` (global)
+
+    ```bash npx
+    npx engineering-docs --kimi
+    ```
+
+    Short alias: `-k`
+
+    ```bash npx short alias
+    npx engineering-docs -k
+    ```
+
+    You can also install directly from within Kimi Code using its native plugin command:
+
+    ```text Kimi Code chat
+    /plugins install https://github.com/fattain-naime/engineering-docs
+    ```
+
+    The Kimi Code manifest at `integrations/plugins/.kimi-plugin/plugin.json` includes a `skillInstructions` field that maps Engineering Docs skill calls to Kimi Code's native tool names (`AskUserQuestion`, `Read`, `Write`, `Edit`, `Bash`, etc.) and declares the `Interactive`, `Read`, and `Write` capability flags.
+
+    **Setup script:**
+
+    <CodeGroup>
+
+    ```bash Linux / macOS
+    ./scripts/setup.sh --kimi
+    ```
+
+    ```powershell Windows
+    pwsh scripts\setup.ps1 -Target kimi
+    ```
+
+    </CodeGroup>
+
+  </Tab>
+
+  <Tab title="Codex">
+
+    **Install path:** `.codex/engineering-docs/` (workspace-local)
+
+    ```bash npx
+    npx engineering-docs --codex
+    ```
+
+    Short alias: `-x`
+
+    Codex uses a workspace-local `.codex/` directory. Run this from your project root. The plugin manifest at `integrations/plugins/.codex-plugin/plugin.json` provides structured metadata and lists `./skills/` as the skills directory. Codex can also install from its own marketplace.
+
+    **Setup script:**
+
+    <CodeGroup>
+
+    ```bash Linux / macOS
+    ./scripts/setup.sh --codex
+    ```
+
+    ```powershell Windows
+    pwsh scripts\setup.ps1 -Target codex
+    ```
+
+    </CodeGroup>
+
+  </Tab>
+
+  <Tab title="Copilot CLI">
+
+    **Install path:** `~/.copilot/plugins/engineering-docs/` (global)
+
+    ```bash npx
+    npx engineering-docs --copilot
+    ```
+
+    Short alias: `-p`
+
+    The plugin ships `integrations/plugins/.copilot/COPILOT.md` which provides GitHub Copilot CLI with the complete auto-trigger rule table and behavioral standards. The `COPILOT.md` file is written using safe-write semantics.
+
+    **Setup script:**
+
+    <CodeGroup>
+
+    ```bash Linux / macOS
+    ./scripts/setup.sh --copilot
+    ```
+
+    ```powershell Windows
+    pwsh scripts\setup.ps1 -Target copilot
+    ```
+
+    </CodeGroup>
+
+  </Tab>
+
+</Tabs>
+
+## All install paths at a glance
+
+| Agent | Flag | Alias | Install path | Scope |
+|:------|:-----|:------|:-------------|:------|
+| Goose | `--goose` | — | `~/.config/goose/extensions/engineering-docs/` | Global |
+| Pi | `--pi` | — | `~/.pi/packages/engineering-docs/` | Global |
+| OpenCode | `--opencode` | — | `.opencode/engineering-docs/` | Workspace |
+| Kilo Code | `--kilo` | — | `~/.kilo-code/plugins/engineering-docs/` | Global |
+| Roo Code | `--roo` | — | `~/.roo-code/plugins/engineering-docs/` | Global |
+| Cline | `--cline` | — | `.clinerules` | Workspace |
+| Factory Droid | `--factory` | — | `~/.factory/plugins/engineering-docs/` | Global |
+| Kimi Code | `--kimi` | `-k` | `~/.kimi-code/plugins/engineering-docs/` | Global |
+| Codex | `--codex` | `-x` | `.codex/engineering-docs/` | Workspace |
+| Copilot CLI | `--copilot` | `-p` | `~/.copilot/plugins/engineering-docs/` | Global |
+
+## Setup script target reference
+
+Both cross-platform scripts support all of the targets above. Use the `-Target` parameter on PowerShell or the `--<target>` flag on Bash:
+
+| Target value | Bash flag | PowerShell `-Target` |
+|:-------------|:----------|:---------------------|
+| Goose | `--goose` | `goose` |
+| Pi | `--pi` | `pi` |
+| OpenCode | `--opencode` | `opencode` |
+| Kilo Code | `--kilo` | `kilo` |
+| Roo Code | `--roo` | `roo` |
+| Cline | `--cline` | `cline` |
+| Factory Droid | `--factory` | `factory` |
+| Kimi Code | `--kimi` | `kimi` |
+| Codex | `--codex` | `codex` |
+| Copilot CLI | `--copilot` | `copilot` |
+
+<Tip>
+  All install methods — `npx`, `setup.sh`, and `setup.ps1` — apply the same safe-write rules. Agent config files (`AGENTS.md`, `GOOSE.md`, `PI.md`, `COPILOT.md`, etc.) are created only if they do not already exist at the destination. Your existing customizations are always preserved.
+</Tip>
+
+## After installing
+
+Reload your agent or restart its CLI session to pick up the new plugin directory. Once loaded, trigger the orchestrator skill by telling your agent:
+
+```
+I want to build [your idea]. Help me plan it.
+```
+
+The `using-engineering-docs` skill activates automatically, detects whether this is a new (Greenfield) or existing (Brownfield) project, and guides you through the full documentation sequence.

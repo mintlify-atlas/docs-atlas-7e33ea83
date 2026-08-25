@@ -1,0 +1,221 @@
+---
+title: "ux-flow-specification skill: user journeys, screen flows, and UI states"
+sidebarTitle: "UX Flow"
+description: "Generate a UX flow specification: information architecture, user journeys, screen-by-screen flows, all four UI states (loading/empty/error/success), accessibility notes, and edge case recovery paths."
+---
+
+The **ux-flow-specification** skill produces a complete behavioral specification for how a user moves through a product — covering information architecture, user journeys, every screen in the flow, and every state each screen can be in. It deliberately separates behavior and structure from visual styling: specifying "after a failed payment, the user sees an inline error on the same screen with the amount preserved and a retry button" rather than what color that error is. Visual language belongs in `design-system-specification`; this document governs behavior.
+
+<Info>
+| Property | Value |
+| :--- | :--- |
+| **Type** | Workflow |
+| **Estimated time** | 2–6 hours |
+| **Conditional?** | Skip for pure backend or API-only projects with no user-facing interface |
+| **Output file** | `.engineering-docs/10-ux-flow-specification.md` |
+| **Related** | Pairs with `design-system-specification` for visual layer; feeds implementation directly |
+</Info>
+
+<Note>
+**This skill is conditional.** If the project is a pure backend service, a CLI tool with no user-facing screens, or a data pipeline with no interactive UI, skip this skill and proceed to `design-system-specification` (also conditional) or `admin-access-control-specification`.
+</Note>
+
+## Best for
+
+- Mapping the full user journey through a product or major new feature before implementation begins
+- Defining the information architecture and navigation structure of an application
+- Specifying every UI state (loading, empty, error, success, permission-denied) so none are left to improvisation during build
+- Giving an AI coding agent or new engineer enough detail to build every screen without a visual mockup
+
+## What it produces
+
+The generated document covers:
+
+1. **Overview** — which flow(s) the document covers, primary tasks served
+2. **Information architecture** — site map (ASCII or structured list) of every screen and nesting relationship
+3. **User journeys** — end-to-end narrative for each primary task, including cross-session and multi-channel steps
+4. **Screen-by-screen flow** — for each screen: entry points, primary action, all four states (loading / empty / error / success), and every exit point
+5. **Flow diagram** — Mermaid flowchart showing the primary path, branching decision points, error branches, and recovery loops
+6. **Responsive behavior** — layout changes per breakpoint (desktop / tablet / mobile), hidden elements, touch adaptations, cross-device state continuity
+7. **Error taxonomy** — per error type: example scenario, user message pattern, recovery action
+8. **Confirmation patterns** — when to use a modal vs. an undo toast vs. double confirmation for catastrophic actions
+9. **Notification patterns** — toast, banner, in-app notification, inline message: use case, duration, dismissability, position
+10. **State management** — form persistence, undo support, offline behavior, stale data handling
+11. **Edge cases and recovery paths** — table of every non-happy-path scenario with trigger, behavior, and recovery (no dead ends)
+12. **Accessibility notes** — per-screen keyboard/tab order, focus management after actions, "completable without mouse" verification
+
+## How to invoke it
+
+<CodeGroup>
+```bash Claude Code
+claude "Document the user flow for our onboarding process, from signup to first successful action" --skill ux-flow-specification
+```
+
+```bash Gemini CLI
+gemini "Map the information architecture and navigation for our new dashboard product" --skill ux-flow-specification
+```
+
+```bash Generic (npx)
+npx engineering-docs ux-flow-specification "Specify every screen and state needed for the checkout flow, including error and empty states"
+```
+</CodeGroup>
+
+<Tip>
+Include known edge cases when invoking: "handle expired verification code, wrong code entry, and a user who already has an account." The richer the edge case list, the more complete the recovery path section.
+</Tip>
+
+## Example scenarios
+
+<CardGroup cols={2}>
+  <Card title="Onboarding flow" icon="user-plus">
+    "Document the user flow for account signup through first successful login — email verification, password set, empty-state dashboard, including expired code and existing account cases."
+  </Card>
+  <Card title="Dashboard IA" icon="layout-dashboard">
+    "Map the information architecture and navigation structure for our merchant analytics dashboard."
+  </Card>
+  <Card title="Checkout flow" icon="cart-shopping">
+    "Specify every screen and state needed for the checkout flow — payment entry, processing, success, and all failure modes."
+  </Card>
+  <Card title="Settings and permissions" icon="gear">
+    "Document the settings and access-management flow — role assignment, invitation, permission-denied states."
+  </Card>
+</CardGroup>
+
+## Key concepts
+
+<Accordion title="The four states every screen must specify">
+A screen is not complete until all four states are described. Omitting any one is the single most common source of "the happy path works but everything else is undefined" bugs:
+
+| State | Description |
+| :--- | :--- |
+| **Loading** | What shows while data is being fetched |
+| **Empty** | What shows when there is legitimately no data yet (first-time use, not an error) |
+| **Error** | What shows when something failed, and what recovery action is offered |
+| **Populated / Success** | The normal, expected state with data present |
+</Accordion>
+
+<Accordion title="Information architecture vs. user journeys vs. screen flows">
+**Information architecture (IA):** The structural map of every screen/page and how they nest or relate — the site map. Answers "where does this screen live" independent of any single task.
+
+**User journey:** The end-to-end narrative of accomplishing a goal, possibly crossing sessions or channels. Big-picture context.
+
+**Screen flow:** The literal sequence of screens and user actions for one specific task. Implementation-level precision. The skill produces all three.
+</Accordion>
+
+<Accordion title="Error taxonomy — classify every failure">
+| Error Type | User Message Pattern | Recovery Action |
+| :--- | :--- | :--- |
+| Network | "Unable to connect. Check your connection and try again." | Retry button, auto-retry with backoff |
+| Validation | Inline field error with specific guidance | Correct the field, resubmit |
+| Permission | "You don't have permission to do this. Contact your admin." | Link to request access |
+| Server | "Something went wrong on our end. We're looking into it." | Retry, status page link |
+| Not found | "This [item] couldn't be found." | Navigate back, search, or create new |
+| Conflict | "This was modified by someone else. Review the changes." | Show diff, let user choose version |
+</Accordion>
+
+<Accordion title="Confirmation patterns — modal vs. undo">
+- **Destructive, irreversible actions:** Blocking confirmation modal with the action name and consequence stated ("Delete payment link — this cannot be undone")
+- **Reversible actions:** Prefer undo toast (toast with "Undo" button, 5–10 second auto-dismiss) over a blocking dialog — less friction, same safety
+- **Catastrophic actions** (delete organization, revoke all access): Require the user to type the resource name — double confirmation
+- **Confirmation placement:** Inline for minor actions, modal for significant actions, full-page for account-level changes
+</Accordion>
+
+<Accordion title="Accessibility as a flow concern">
+Accessibility is not just visual — it is structural and must be specified per screen:
+- **Keyboard tab order:** The sequence focus moves through interactive elements on each screen
+- **Focus management after actions:** Where does focus land after a modal closes? After form submission? After an error?
+- **Completable without mouse:** Every screen flow must be traversable via keyboard alone — specified in the accessibility notes table
+</Accordion>
+
+<Accordion title="Dead-end screens — a UX defect">
+A screen with no way to go back, forward, or recover is a UX defect to catch at spec time. Every screen must have explicit exit points for every state, including error states. The edge cases table explicitly flags any scenario that would result in a dead end and documents the recovery path.
+</Accordion>
+
+<Accordion title="Responsive and cross-device flow">
+For products used across devices, the spec documents:
+- **Breakpoint behavior:** What elements collapse, hide, or reflow at each breakpoint (desktop / tablet / mobile)
+- **Touch vs. pointer:** Hover states that become tap-and-hold, swipe replacing click-and-drag
+- **Context-aware defaults:** Which actions are prominent on mobile vs. desktop
+- **Cross-device continuity:** What state is preserved if a user switches devices mid-flow
+</Accordion>
+
+## Interview process
+
+<Steps>
+  <Step title="Phase 1: Socratic clarification (mandatory)">
+    Reads all prior `.engineering-docs/` files first. Up to 3 questions: primary task (the single most important thing a user is trying to accomplish), and known edge cases (failure modes, permission levels, unusual paths that must be handled).
+  </Step>
+  <Step title="Phase 2: Information architecture (60 min)">
+    Map every screen/page and how they nest or link. Produce the site map.
+  </Step>
+  <Step title="Phase 3: User journey mapping (40–60 min)">
+    Narrate end-to-end journeys for the primary tasks, including any cross-session or multi-channel steps.
+  </Step>
+  <Step title="Phase 4: Screen-by-screen flow (2–3 hrs)">
+    For each screen: entry point, primary action, all four states, and every exit/navigation option.
+  </Step>
+  <Step title="Phase 5: Edge cases and recovery paths (40–60 min)">
+    Walk through every known failure mode and unusual path. Ensure none result in a dead end.
+  </Step>
+  <Step title="Phase 6: Accessibility pass (30–40 min)">
+    Verify keyboard navigation order, focus management, and that the flow is completable without a mouse.
+  </Step>
+  <Step title="Phase 7: Revision (after user review)">
+    Apply changes, check for cross-document conflicts, update `last_updated`.
+  </Step>
+</Steps>
+
+## Output structure
+
+The generated `.engineering-docs/10-ux-flow-specification.md` follows this structure:
+
+```
+1.  Overview (flows covered + primary tasks)
+2.  Information Architecture (site map)
+3.  User Journey: [Journey Name] (narrative)
+4.  Screen-by-Screen Flow (entry → states → exits, per screen)
+5.  Flow Diagram (Mermaid flowchart)
+6.  Responsive Behavior (breakpoint table)
+7.  Error Taxonomy (per error type table)
+8.  Confirmation Patterns (modal / undo / double-confirm)
+9.  Notification Patterns (toast / banner / inline)
+10. State Management (form persistence / undo / offline / stale data)
+11. Edge Cases and Recovery Paths
+12. Accessibility Notes (per screen: tab order, focus management)
+13. Open Questions
+```
+
+**Target length:** 5–10 pages excluding appendices.
+
+## Handoff
+
+<CardGroup cols={2}>
+  <Card title="Reads from" icon="arrow-down">
+    - `3-user-personas.md` — persona goals, journey context, friction tolerance
+    - `1-business-plan.md` — scope, feature priorities, user types
+    - `4-technical-specification.md` — functional requirements defining screen behavior
+  </Card>
+  <Card title="Feeds into" icon="arrow-up">
+    - `design-system-specification` — component needs, interaction patterns, state requirements
+    - `7-system-architecture-document.md` — frontend component structure, API interaction points
+    - Implementation — screen-by-screen build specification for engineers and AI agents
+  </Card>
+</CardGroup>
+
+## Quality gate
+
+- [ ] Every screen in the flow specifies all four states: loading, empty, error, and populated/success
+- [ ] No screen is a dead end — every screen has explicit exit points including for error states
+- [ ] The information architecture (site map) is complete and every screen in the flow appears in it
+- [ ] Edge cases and recovery paths are documented in a table with no scenario resulting in an unrecoverable state
+- [ ] Each screen includes accessibility notes covering keyboard navigation order and focus management
+
+<Warning>
+**Common gotchas:**
+
+- Specifying only the happy path — missing states (loading, empty, error) are the most common UX defect
+- Creating dead-end screens — every screen must have a way forward, back, or to recover
+- Confusing this document with visual design — "the error is red" belongs in `design-system-specification`; this document says "an inline error message appears with the field value preserved and a retry action"
+- Forgetting accessibility as a flow concern — keyboard tab order and focus management are structural decisions, not visual polish
+- Not cross-referencing personas — a flow that doesn't connect to the defined user goals risks optimizing for the wrong user
+</Warning>

@@ -1,0 +1,197 @@
+---
+title: "technical-runbook skill: on-call operations manual following Google SRE"
+sidebarTitle: "Runbook"
+description: "Generate a production runbook that equips any on-call engineer with alert procedures, diagnostic commands, escalation paths, and maintenance steps following Google SRE standards."
+---
+
+The `technical-runbook` skill produces a comprehensive operations manual for a named service, written to reduce Mean Time to Recovery (MTTR) rather than explain system design. When an engineer is paged at 3 AM they need exact commands and decision trees — not architecture rationale. This skill follows Google SRE Book principles: document what to do, link to the System Architecture Document for why it was designed that way, and keep every step executable by someone who has never seen the service before.
+
+<Info>
+**Type:** Workflow · **Estimated time:** 2–4 hours · **Standards:** Google SRE Book runbook format · **Output file:** `.engineering-docs/17-technical-runbook.md` · **Conditional skill** — include once a service runs in production and especially before handing it to a new on-call rotation or a new team.
+</Info>
+
+## Best for
+
+<CardGroup cols={2}>
+  <Card title="New service pre-launch" icon="rocket">
+    Documenting operations procedures for a new service before it goes to production.
+  </Card>
+  <Card title="Tribal knowledge capture" icon="brain">
+    Capturing tacit knowledge from senior engineers about how a legacy service behaves under stress.
+  </Card>
+  <Card title="Team handoff" icon="handshake">
+    Preparing on-call documentation before a service is handed to a new team or on-call rotation.
+  </Card>
+  <Card title="Alert reference" icon="bell">
+    Creating the reference document linked directly from monitoring alert annotations and runbook URLs.
+  </Card>
+</CardGroup>
+
+## What it produces
+
+The generated runbook follows the Google SRE standard and covers every section an on-call engineer needs to resolve common incidents without calling the original developer:
+
+| Section | Purpose |
+|:---|:---|
+| **⚡ Quick Reference** | Symptom-to-section lookup table for engineers mid-incident |
+| **Service Overview** | What the service does, SLA targets, architecture summary, external dependencies |
+| **Monitoring & Dashboards** | Where to look, key metrics with normal / warning / critical thresholds |
+| **Alert Index** | Every active alert, its severity, trigger condition, and runbook section |
+| **Alert Response Procedures** | One numbered procedure per alert: diagnose → mitigate → escalate |
+| **Escalation Path** | L0–L3 contacts, when to engage each level, incident channel |
+| **Diagnostic Reference** | Log locations, health check commands, useful SQL snippets |
+| **Maintenance Procedures** | Restart, cache clear, emergency rollback, emergency database backup |
+| **Certificate Management** | Certificate inventory, rotation procedure, emergency rotation |
+| **Secret Rotation** | Secret inventory, zero-downtime rotation per secret type |
+| **Configuration Change** | Change procedure with rollback steps, feature flag management |
+| **Performance Profiling** | Xdebug, Blackfire, APM, MySQL slow log — safe production profiling |
+| **Multi-Region Procedures** | Server inventory, region-specific steps, distributed debugging |
+| **Validation Drills** | Quarterly review checklist and drill log |
+| **Change Log** | Version history tied to production state |
+
+## How to invoke it
+
+Pass the service name as the argument. The richer the context you provide — alert definitions, failure modes, diagnostic commands, escalation contacts — the more complete the first draft will be.
+
+<CodeGroup>
+```bash Claude Code
+claude "Write a runbook for the PayFlow payment gateway. It's a PHP 8.3 app on Nginx/PHP-FPM, MySQL primary + replica, Redis for sessions/cache, and a queue worker process for async jobs. Alerts fire for: high 5xx rate, slow DB queries, queue depth > 1000, and PHP-FPM pool exhaustion."
+```
+
+```bash Gemini CLI
+gemini "Write a runbook for the PayFlow payment gateway. It's a PHP 8.3 app on Nginx/PHP-FPM, MySQL primary + replica, Redis for sessions/cache, and a queue worker process for async jobs. Alerts fire for: high 5xx rate, slow DB queries, queue depth > 1000, and PHP-FPM pool exhaustion."
+```
+
+```bash Generic / npx
+npx engineering-docs technical-runbook "PayFlow payment gateway"
+```
+</CodeGroup>
+
+## Example scenarios
+
+<Accordion title="Payment gateway service">
+  `Write a runbook for the PayFlow payment gateway application`
+
+  Produces alert response procedures for high 5xx rates, DB connection exhaustion, queue depth, and PHP-FPM pool saturation, with exact diagnostic commands for each failure mode.
+</Accordion>
+
+<Accordion title="Webhook delivery worker">
+  `Create an operations manual for our webhook delivery worker service`
+
+  Documents worker health checks, queue depth alerts, failed-job triage commands, and the procedure to safely scale workers during traffic spikes.
+</Accordion>
+
+<Accordion title="Redis session cache">
+  `Document how to operate and troubleshoot our Redis session cache`
+
+  Covers memory pressure alerts, eviction policy diagnostics, keyspace inspection commands, and the procedure for safely flushing or migrating the cache.
+</Accordion>
+
+## Key concepts
+
+### MTTR reduction is the primary goal
+
+Every section of the runbook asks: "Can an on-call engineer execute this step in under 5 minutes?" Vague instructions like "check the logs" are replaced with exact commands, expected outputs, and decision trees. A runbook that reduces MTTR from 2 hours to 15 minutes for common failures pays for its authorship cost in the first incident it handles.
+
+### Certificate and secret management
+
+The skill includes dedicated sections for TLS certificate inventory (with expiry dates and auto-renewal status) and secret inventory (API keys, database passwords, encryption keys). Both include zero-downtime rotation procedures — because certificate expiry and leaked credentials are among the most common preventable outages.
+
+### Performance profiling procedures
+
+When the service is slow but not failing, engineers need profiling guidance, not restart-and-hope. The runbook documents Xdebug, Blackfire, APM slow transaction traces, and MySQL slow query log analysis, along with safe sampling strategies for production use.
+
+### Runbook validation drills
+
+A runbook that has never been tested is a hypothesis. The skill includes a quarterly review checklist — every diagnostic command verified, every escalation contact confirmed current, every alert checked against the live monitoring system — plus a drill log with pass/fail results.
+
+### Living document
+
+Each procedure section carries a "Last Verified" date. The runbook update belongs in the deployment checklist: if the system changes, the runbook must change with it.
+
+## Interview process
+
+The agent conducts a mandatory interview before drafting, loading prior `.engineering-docs/` files to avoid re-asking known facts:
+
+<Steps>
+  <Step title="Context loading">
+    Reads existing documents (system-architecture, deployment-plan, SLO document) to extract known tech stack, hosting, alert thresholds, and escalation contacts.
+  </Step>
+  <Step title="Critical alerts (≤ 2–3 questions)">
+    Asks only about details not covered in prior documents — primarily: what are the most common alerts that trigger for this service?
+  </Step>
+  <Step title="Escalation contacts">
+    Confirms the on-call rotation, secondary contact, and manager (if not already known from the architecture document).
+  </Step>
+  <Step title="Document generation">
+    Drafts the full runbook with exact diagnostic commands for each alert, common failure modes, and all maintenance procedures.
+  </Step>
+  <Step title="Revision">
+    Incorporates user feedback; checks cross-document consistency (alert names must match monitoring definitions in the architecture); updates the Change Log.
+  </Step>
+</Steps>
+
+## Output structure
+
+The generated `.engineering-docs/17-technical-runbook.md` mirrors the template structure exactly:
+
+```markdown title="17-technical-runbook.md (structure)"
+# Technical Runbook
+
+## ⚡ Quick Reference          ← symptom → section lookup
+## 1. Service Overview          ← SLA table, architecture summary, dependencies
+## 2. Monitoring and Dashboards ← dashboard URLs, metric thresholds
+## 3. Alert Index               ← alert name → severity → runbook section
+## 4. Alert Response Procedures ← one procedure per alert
+  ### 4.1 High 5xx Error Rate
+  ### 4.2 Service Unreachable
+  ### 4.3 Database Slow Query / Connection Exhaustion
+  ### 4.4 Queue Depth Elevated
+  ### 4.5 Resource Exhaustion
+  ### 4.6 Disk Full
+## 5. Escalation Path           ← L0–L3 contacts with conditions
+## 6. Diagnostic Reference      ← log paths, health checks, SQL snippets
+## 7. Maintenance Procedures    ← restart, cache clear, rollback, DB backup
+## 8. Certificate Management    ← inventory, rotation, emergency rotation
+## 9. Secret Rotation           ← inventory, per-type rotation procedures
+## 10. Configuration Change     ← change procedure, feature flags
+## 11. Performance Profiling    ← Xdebug, Blackfire, APM, slow log
+## 12. Multi-Region Procedures  ← server inventory, distributed debugging
+## 13. Runbook Validation Drills← quarterly checklist, drill log
+## 14. Change Log
+```
+
+## Handoff
+
+<CardGroup cols={2}>
+  <Card title="Reads from" icon="arrow-down">
+    - `7-system-architecture.md` — components, dependencies, infrastructure
+    - `16-deployment-plan.md` — deployment and rollback steps
+    - `19-slo-error-budget.md` — alert thresholds defined by the SLO
+    - `9-api-design.md` — endpoints to monitor and diagnose
+  </Card>
+  <Card title="Feeds into" icon="arrow-up">
+    - Incident postmortems — diagnostic procedures referenced during incidents
+    - `18-disaster-recovery.md` — operational procedures for recovery scenarios
+    - On-call handoff documentation
+  </Card>
+</CardGroup>
+
+## Quality gate
+
+Before marking the runbook `final`, verify every item in this checklist:
+
+- [ ] Every active alert in the monitoring system has a corresponding response procedure with exact diagnostic commands
+- [ ] All diagnostic commands have been tested against the current production environment and include expected output samples
+- [ ] The Quick Reference table covers the top 5–10 symptoms and links to the correct sections
+- [ ] Each alert response procedure includes a clear escalation trigger with a specific time threshold and condition
+- [ ] The runbook includes a "Last Verified" date and the Change Log reflects the current system state
+- [ ] Certificate inventory is complete with expiry dates and rotation procedures are documented
+- [ ] Secret inventory is complete and rotation procedures (with zero-downtime path) are documented for each secret type
+- [ ] Configuration change procedure is documented with rollback steps
+- [ ] Performance profiling procedures are documented for the relevant stack
+- [ ] Multi-region/multi-server considerations are addressed (if applicable)
+
+<Tip>
+**Runbook validation drill:** Simulate an alert (inject a test error or stage a slow query) and have an engineer resolve it using only the runbook. Time it. If it takes longer than the target MTTR, the runbook needs improvement — not the engineer.
+</Tip>

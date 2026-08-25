@@ -1,0 +1,236 @@
+---
+title: "Add a feature to an existing project using Engineering Docs brownfield mode"
+sidebarTitle: "Adding a Feature"
+description: "How Engineering Docs detects an existing codebase, limits scope to the relevant skills, and appends new documents without touching anything already written."
+---
+
+Engineering Docs' **Brownfield Mode (Mode B)** is designed for one of the most common engineering situations: you already have a running system, and you need to add something to it. Rather than re-running the full business-concept-to-deployment pipeline, the orchestrator reads your existing context, identifies only the skills relevant to the new feature, and appends new numbered documents to your existing `.engineering-docs/` set — never overwriting anything.
+
+## How Mode B is detected
+
+The orchestrator triggers Brownfield Mode automatically when any of these conditions are true:
+
+<CardGroup cols={2}>
+  <Card title="Existing index.md" icon="file-text">
+    A `.engineering-docs/index.md` already exists in the project root — the orchestrator reads it before doing anything else.
+  </Card>
+  <Card title="Feature language in the prompt" icon="message-square">
+    The user's request uses words like "add a feature," "extend," "modify," or "integrate" — strong signals that a base system exists.
+  </Card>
+  <Card title="Existing codebase, no docs" icon="folder">
+    A codebase exists in the project root (e.g., `package.json`, `go.mod`, `pyproject.toml`) but there's no `.engineering-docs/` history yet.
+  </Card>
+  <Card title="Explicit brownfield prompt" icon="terminal">
+    The prompt directly states the project is existing: "We have an existing app built with…"
+  </Card>
+</CardGroup>
+
+<Warning>
+  In Mode B, the orchestrator does **not** re-run the full greenfield pipeline. It will not ask you to re-explain your business model, your user personas, or your system architecture if those documents already exist.
+</Warning>
+
+---
+
+## What the orchestrator reads first
+
+Before asking a single question, the orchestrator loads context:
+
+1. **Reads `index.md`** — gets the full list of existing documents, their status, and the reading order.
+2. **Reads the most recent 2–3 documents** from the existing set — system architecture, technical spec, database design — to understand the current stack, conventions, and entity model.
+3. **If no docs exist yet** (codebase present but no `.engineering-docs/`) — scans the project root for `README.md`, framework config files, and existing database schemas. It then presents its inference of the current system and asks you to confirm or correct it, rather than starting from zero.
+
+```text Orchestrator inference example (no docs yet)
+I found a Next.js + PostgreSQL codebase. Based on the file structure and
+README, here's what I understand about the current system:
+
+- Framework: Next.js 14 (App Router)
+- Database: PostgreSQL with Prisma ORM
+- Auth: NextAuth.js with email/password
+- Existing tables: users, products, orders, order_items
+- Deployment: Vercel (inferred from vercel.json)
+
+Is this accurate? Anything important I'm missing before I document the
+loyalty system addition?
+```
+
+---
+
+## Which skills typically run in Mode B
+
+The orchestrator runs **only the subset of skills relevant to the change**. For most feature additions, this means:
+
+| Skill | Runs when... |
+|:------|:------------|
+| `technical-blueprint` | Always — the detailed design for the new feature itself |
+| `architecture-decision-record` | The feature introduces a significant architectural choice |
+| `database-design-document` | The feature touches the data model (new tables, columns, relationships) |
+| `api-design-document` | The feature adds or changes API endpoints |
+| `admin-access-control-specification` | The feature adds new roles or permission levels |
+| `security-threat-model` | The feature touches auth, payments, or PII — or creates a currency-equivalent (like loyalty points) |
+| `test-strategy-document` | Always — scoped to the feature, not the entire system |
+| `implementation-plan` | Always — the dependency-ordered build sequence for the feature |
+| `project-plan` | Only if scope or timeline changes affect the broader project |
+
+**Not invoked in Mode B:**
+- `business-concept` — already established
+- `user-personas-behavior` — already established
+- `system-architecture-document` — already documented (an ADR is used if architecture changes)
+- `ux-flow-specification` — only if the new UI is complex enough to warrant its own flow doc
+- `design-system-specification` — the existing design system covers it
+- `disaster-recovery-plan` — no change to recovery posture
+- `slo-error-budget-document` — no change to reliability targets (unless the feature is a new high-stakes surface)
+
+---
+
+## End-to-end example: adding a loyalty rewards system
+
+Here's a complete walkthrough using the scenario of adding a loyalty program to an existing e-commerce app.
+
+<Steps>
+  <Step title="Give the orchestrator your feature request">
+    ```text Example prompt (brownfield-feature.txt)
+    We have an existing e-commerce app built with Next.js and PostgreSQL. It
+    handles product listings, a shopping cart, and checkout via Stripe. We've
+    been running for about a year with ~500 orders/month.
+
+    Now we want to add a loyalty rewards system:
+    - Customers earn points on every purchase (1 point per dollar spent)
+    - Points can be redeemed for discounts at checkout
+    - Three tiers: Bronze (0–999 points), Silver (1000–4999), Gold (5000+)
+    - Higher tiers get bonus point multipliers (1x, 1.5x, 2x)
+    - Admins need a dashboard to view loyalty metrics and manually adjust points
+
+    We already have user accounts and an admin panel. Our database has users,
+    products, orders, and order_items tables.
+
+    Help me document what's needed.
+    ```
+
+    The orchestrator detects Mode B from "existing e-commerce app," "add a loyalty rewards system," and the references to established tables and an existing admin panel.
+  </Step>
+
+  <Step title="Context loading and confirmation">
+    The orchestrator reads existing docs (or infers from the codebase) and presents what it understands before asking anything:
+
+    ```text Orchestrator context summary
+    I've read your existing .engineering-docs/ set. Here's my understanding
+    of the current system before we document the loyalty addition:
+
+    - Stack: Next.js + PostgreSQL + Stripe
+    - Users: authenticated, email/password
+    - Admin: existing panel with product and order management
+    - Current tables: users, products, orders, order_items
+    - No existing points, tiers, or redemption tables
+
+    I'll generate these documents for the loyalty system (appending to your
+    existing set from document #20 onward):
+
+    1. Technical Blueprint — loyalty feature detailed design
+    2. Database Design Update — loyalty_points, loyalty_tiers, redemptions tables
+    3. API Design Update — new endpoints for loyalty CRUD
+    4. Admin Access Control Update — loyalty dashboard permissions
+    5. Security Threat Model — points as currency-equivalent, abuse vectors
+    6. Test Strategy — scoped to the loyalty feature
+    7. Implementation Plan — build order for the loyalty system
+
+    Shall I proceed?
+    ```
+  </Step>
+
+  <Step title="Feature-scoped interviews">
+    For each skill, the orchestrator asks **only what it doesn't already know** — maximum 2–3 questions, one at a time.
+
+    For the loyalty system, the security threat model interview might ask:
+
+    - *"Points are effectively a monetary equivalent. Should point balances be treated as financial records for audit purposes, or is a soft log sufficient?"*
+    - *"What's the maximum redemption value per order, and should there be velocity limits on point accrual to prevent abuse?"*
+
+    It will **not** re-ask questions already answered in existing documents — it already knows your stack, team size, and Stripe integration from prior docs.
+  </Step>
+
+  <Step title="Documents append to the existing set">
+    New documents are written with the **next available sequence numbers**, continuing the existing set:
+
+    ```
+    .engineering-docs/
+      index.md                          ← Updated to include new documents
+      1-business-plan.md                ← Untouched
+      2-project-plan.md                 ← Untouched
+      ...
+      19-deployment-plan.md             ← Untouched
+      20-blueprint-loyalty-system.md    ← New
+      21-database-design-loyalty.md     ← New
+      22-api-design-loyalty.md          ← New
+      23-admin-access-control-loyalty.md ← New
+      24-security-threat-model-loyalty.md ← New
+      25-test-strategy-loyalty.md       ← New
+      26-implementation-plan-loyalty.md ← New
+      adr/
+        0001-stripe-integration.md      ← Existing, untouched
+        0002-loyalty-points-as-ledger.md ← New ADR for the currency-equivalent decision
+    ```
+
+    <Info>
+      Existing documents are **never overwritten**. If a new document truly replaces an old one — for example, if the loyalty system completely changes the database schema document — the old file moves to `.engineering-docs/archive/` with a timestamp suffix, and the new version takes the next available number.
+    </Info>
+  </Step>
+
+  <Step title="Updated master index">
+    After all new documents are generated, `index.md` is updated to reflect the complete picture — original documents plus the new feature additions:
+
+    ```markdown Updated index.md
+    ## Document Set
+
+    | # | Document | Status | Feature | Last Updated |
+    |:--|:---------|:-------|:--------|:-------------|
+    | 1 | Business Plan | final | core | 2024-06-01 |
+    | ... | ... | ... | ... | ... |
+    | 20 | Blueprint: Loyalty System | final | loyalty | 2025-01-15 |
+    | 21 | Database Design: Loyalty | final | loyalty | 2025-01-15 |
+    | 22 | API Design: Loyalty | final | loyalty | 2025-01-15 |
+    | 23 | Admin Access Control: Loyalty | final | loyalty | 2025-01-15 |
+    | 24 | Security Threat Model: Loyalty | final | loyalty | 2025-01-15 |
+    | 25 | Test Strategy: Loyalty | final | loyalty | 2025-01-15 |
+    | 26 | Implementation Plan: Loyalty | final | loyalty | 2025-01-15 |
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Versioning: what happens to old documents
+
+When a new feature **partially replaces** an earlier document (e.g., the database design for the loyalty system adds tables that change the original schema document), two paths are available:
+
+<Tabs>
+  <Tab title="Append a scoped document (preferred)">
+    Write a new document scoped to the feature (e.g., `21-database-design-loyalty.md`) that documents only the new or changed tables. The original database design document remains intact as the canonical record of the original schema.
+
+    This is preferred for **additive changes** where the original document is still accurate for what it describes.
+  </Tab>
+  <Tab title="Archive and replace">
+    If the new document truly supersedes the old one — for example, a complete schema overhaul — the orchestrator moves the old file to `.engineering-docs/archive/` with a timestamp suffix:
+
+    ```
+    .engineering-docs/
+      archive/
+        8-database-design.md.2024-06-01  ← Archived original
+      27-database-design-v2.md           ← New canonical version
+    ```
+
+    The `index.md` is updated to point to the new document, and the archived version is listed as `status: superseded`.
+  </Tab>
+</Tabs>
+
+---
+
+## Consistency after a brownfield run
+
+After all feature documents are generated, the orchestrator runs the same cross-document consistency checks as Mode A — but scoped to the interaction between new and existing documents:
+
+- Do the new API endpoints reference entities that actually exist in the database design (both old and new tables)?
+- Does the security threat model cover the new API surface introduced by the loyalty system?
+- Do entity names in the new documents match the naming conventions established in the original technical specification?
+- Does the new implementation plan account for the existing deployment pipeline?
+
+Any mismatches are surfaced with a recommended resolution before the document set is marked complete.

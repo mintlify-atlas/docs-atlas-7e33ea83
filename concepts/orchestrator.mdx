@@ -1,0 +1,160 @@
+---
+title: "The Engineering Docs Orchestrator: auto-routing from idea to blueprint"
+sidebarTitle: "Orchestrator"
+description: "How the using-engineering-docs skill routes raw project ideas through the full skill pipeline — managing sequencing, interviews, consistency, and session state."
+---
+
+The Engineering Docs **orchestrator** is the entry point that sits between a raw project idea and the 21 specialist skills in the plugin. When you describe what you want to build — a single sentence, a messy paragraph, a half-formed concept — the orchestrator takes over: it conducts a structured discovery conversation, decides which documents your specific project needs and in which order, invokes each skill in turn, and stitches the results into a single coherent, navigable document set. You never choose a skill by name; the orchestrator handles every routing decision.
+
+<Info>
+**Key distinction:** The orchestrator is a **router, not a writer.** It does not draft documents itself. Its job is to understand the project well enough to hand off to the correct specialist skill at the correct time, in the correct sequence.
+</Info>
+
+## What the Orchestrator Does
+
+The `using-engineering-docs` skill runs a six-phase lifecycle on every invocation:
+
+<Steps>
+  <Step title="Mode Detection">
+    Before anything else, the orchestrator determines whether you're in **Mode A (Greenfield)** — a net-new product with no existing `.engineering-docs/` folder — or **Mode B (Brownfield)** — an existing project, existing codebase, or a "add a feature" request. The document set and interview questions are different for each mode. See [Greenfield vs. Brownfield](/concepts/greenfield-vs-brownfield) for full details.
+  </Step>
+  <Step title="Idea Intake and Standing Constraints">
+    For Mode A, Phase 0 runs a structured business concept interview using tool calls (`AskUserQuestion`) — not inline chat. Six standing constraint questions (team size, hosting, budget, timeline, regulatory needs, existing integrations) are asked once, early, because every downstream document depends on them. Answers are written to `1-business-plan.md` immediately.
+  </Step>
+  <Step title="Skill Selection and Sequencing Plan">
+    Using the Skill Directory (below), the orchestrator determines which conditional skills apply to this particular project and proposes the resulting document list. It presents this plan to the user in a few lines and invites redirects — but does not turn plan approval into a multi-question gate.
+  </Step>
+  <Step title="Sequential Document Generation">
+    For each document in the plan, the orchestrator reads the skill's `SKILL.md`, reads all prior documents to extract already-known information, identifies only the truly missing items (maximum 2–3 questions), generates the document using the skill's template, writes it to `.engineering-docs/`, updates `index.md`, and asks for user confirmation before moving to the next document.
+  </Step>
+  <Step title="Consistency and Completeness Pass">
+    After each document is produced, the orchestrator runs a lightweight cross-check against all previously written documents — entity names, architectural assumptions, role definitions, endpoint-to-entity alignment. A final pass runs across the complete set before the document set is declared ready.
+  </Step>
+  <Step title="Master Project Index">
+    The final output is `index.md` — a structured navigation document listing every document produced, its status, and the reading order a new engineer or AI agent should follow to get full context fast.
+  </Step>
+</Steps>
+
+---
+
+## The Skill Directory
+
+Every skill has a phase number, which controls its position in the generated sequence. "Always core" skills run on every project regardless of scope; conditional skills are included only when the project actually needs them.
+
+| Phase | Skill | Produces | Always Core or Conditional? |
+|:------|:------|:---------|:----------------------------|
+| 0 | `business-concept` | Problem, users, value proposition, monetization, constraints | **Always** |
+| 0.5 | `project-plan` | Scope, milestones, RACI, timeline, work breakdown structure | **Always** |
+| 0.6 | `user-personas-behavior` | User personas, jobs-to-be-done, success metrics, analytics plan | **Always** |
+| 1 | `technical-feasibility-study` | Go/no-go on a specific risky technical approach | Conditional — only if a specific part of the idea is technically uncertain |
+| 2 | `technical-specification` | Functional & non-functional requirements (SRS/TSD) | **Always** |
+| 2.5 | `ux-flow-specification` | User journeys, screen-by-screen flow, every UI state | Conditional — skip only for a pure backend/API-only project with no UI |
+| 3 | `system-architecture-document` | Overall structure — diagrams, tech stack, NFRs | **Always** |
+| 3+ | `architecture-decision-record` | One immutable record per significant decision | Ad hoc — created throughout, not as a single upfront document |
+| 4 | `database-design-document` | ERD, schema, indexing, migration plan | Conditional — skip only if the project has no structured data to persist |
+| 5 | `api-design-document` | API contract, resources, auth, versioning | Conditional — include if there's any internal or external API surface |
+| 5.5 | `admin-access-control-specification` | Roles, permission matrix, audit logging, break-glass access | Conditional — include as soon as there is more than one privilege level |
+| 6 | `security-threat-model` | STRIDE-based threat model and risk register | Conditional — include whenever the project handles accounts, payments, PII, or any external attack surface |
+| 7 | `design-system-specification` | Visual design tokens, components, accessibility | Conditional — skip for API-only or purely internal CLI-type projects |
+| 8 | `technical-blueprint` | Detailed design for one specific feature/component | Ad hoc — one per non-trivial feature surfaced during implementation planning |
+| 8.5 | `implementation-plan` | Dependency-ordered build sequence, phase gates | **Always** |
+| 9 | `test-strategy-document` | Testing pyramid, mocking strategy, CI gates | **Always** |
+| 10 | `deployment-plan` | Release strategy, go/no-go gate, rollback | **Always** |
+| 11 | `technical-runbook` | On-call operations manual | Conditional — include once something will actually run in production |
+| 11.5 | `disaster-recovery-plan` | RTO/RPO, backup strategy, failover runsheets | Conditional — include whenever downtime or data loss has real business or compliance cost |
+| 11.6 | `slo-error-budget-document` | Reliability targets, error budget, burn-rate alerts | Conditional — include once real users or customers depend on uptime |
+| ongoing | `incident-postmortem` | Blameless review of a real incident | Never scheduled upfront — only used reactively after launch |
+
+---
+
+## Right-Sizing, Not Maximalism
+
+A weekend side project and a payments platform do not need the same 15 documents. The orchestrator's job is to determine which conditional skills actually apply — generating every possible document regardless of project scope defeats the purpose.
+
+<CardGroup cols={2}>
+  <Card title="Always include for projects with…" icon="check">
+    Real users depending on uptime, any money or personal data, multi-team codebases, or compliance obligations (PCI, GDPR, SOC 2). When in doubt on a conditional skill, lean toward including it.
+  </Card>
+  <Card title="Consider skipping for…" icon="minus">
+    Internal prototypes, side projects, CLI tools with no user-facing UI, or experimental work with no production deployment planned. The orchestrator states which way it leaned and why.
+  </Card>
+</CardGroup>
+
+---
+
+## Anti-Rationalization: What to Stop Doing
+
+These thoughts signal the orchestrator (or the agent running it) is rationalizing a shortcut. They come directly from the `using-engineering-docs` SKILL.md:
+
+| Thought | Reality |
+|:--------|:--------|
+| "This project is simple enough to skip idea intake" | Simple projects have the most unexamined assumptions. The intake takes 5 minutes. |
+| "I can batch all the clarifying questions at once" | One question at a time produces better answers. Batching overwhelms the user. |
+| "I'll generate all conditional documents just to be thorough" | Right-sizing is the point. Generating unnecessary docs wastes time and dilutes quality. |
+| "I'll do the consistency check at the end" | Incremental checks catch errors when they're cheap to fix. End-of-run checks find compounding problems. |
+| "The user probably knows what they want, I'll skip the interview" | The interview IS the value. Without it, you're guessing. |
+| "This document looks good enough, I'll move on" | Quality gates exist for a reason. "Good enough" without verification is not good enough. |
+| "I remember the skill, I don't need to read it" | Skills evolve. Always read the current SKILL.md before invoking. |
+| "I'll just generate the template without the interview" | The interview produces the content. The template is just the structure. |
+| "I'll ask inline in the conversation" | Use tool calls for interviews. Inline questions pollute conversation context. |
+
+---
+
+## Standalone Skill Usage
+
+Every skill remains independently callable outside the orchestrator. If you already have partial documentation and need only a single artifact — say, a security threat model on an existing system — you can invoke `engineering-docs:security-threat-model` directly. Standalone mode skips the orchestrator's phase sequencing and context-loading, interviewing for exactly what that one skill needs.
+
+```bash standalone-skill.sh
+# Invoke a single skill directly without running the full orchestrator
+engineering-docs:security-threat-model
+engineering-docs:technical-blueprint
+engineering-docs:incident-postmortem
+```
+
+---
+
+## Session Persistence and Resume
+
+Full Mode A pipelines span multiple sessions. The orchestrator never loses progress:
+
+- After every phase completes, `index.md` records which phases are done, which is in progress, and what the next unanswered question is.
+- On a new invocation where a partial `.engineering-docs/` folder already exists, the orchestrator reads `index.md` first and resumes exactly where it left off.
+- Nothing already answered is re-asked. No completed document is overwritten.
+
+For large projects requiring 10 or more documents, the orchestrator proactively suggests starting a fresh session between major phases. The `index.md` file is the anchor — a fresh session reads it first, loads the most recent 2–3 documents for context, and continues from the last recorded checkpoint.
+
+---
+
+## Output Structure
+
+The complete output lives in `.engineering-docs/` at the project root:
+
+```text project-root/.engineering-docs/
+.engineering-docs/
+├── index.md
+├── 1-business-plan.md
+├── 2-project-plan.md
+├── 3-user-personas.md
+├── 4-feasibility-study.md          (if applicable)
+├── 5-technical-specification.md
+├── 6-ux-flow-specification.md       (if applicable)
+├── 7-system-architecture.md
+├── 8-database-design.md             (if applicable)
+├── 9-api-design.md                  (if applicable)
+├── 10-admin-access-control.md       (if applicable)
+├── 11-security-threat-model.md      (if applicable)
+├── 12-design-system.md              (if applicable)
+├── 13-blueprint-<feature-name>.md   (one per feature)
+├── 14-implementation-plan.md
+├── 15-test-strategy.md
+├── 16-deployment-plan.md
+├── 17-technical-runbook.md          (if applicable)
+├── 18-disaster-recovery.md          (if applicable)
+├── 19-slo-error-budget.md           (if applicable)
+└── adr/
+    └── 0001-<decision-slug>.md      (ADRs accumulate over time)
+```
+
+<Note>
+On re-run, the orchestrator **never overwrites** existing numbered files. New content appends as a new numbered file (e.g., `18-blueprint-checkout-v2.md`), or the old file is archived to `.engineering-docs/archive/` with a timestamp suffix. The `index.md` always reflects current reality.
+</Note>

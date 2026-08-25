@@ -1,0 +1,231 @@
+---
+title: "user-personas-behavior skill: personas, JTBD, and success metrics"
+sidebarTitle: "User Personas"
+description: "Define who a product is for using Jobs-to-Be-Done framing, map user journeys, set leading and lagging success metrics, and produce a concrete analytics event-tracking plan."
+---
+
+The `user-personas-behavior` skill produces the document that keeps a project honest about who it is actually being built for — and how anyone will know, after launch, whether it worked. Technical documents in the Engineering Docs pipeline specify *what* the system does; this skill specifies *who* needs it to do that and *why*, using the Jobs-to-Be-Done framework rather than shallow demographic labels. It then defines the success metrics and the concrete analytics events required to measure them, so "is this working?" has a data-backed answer instead of an opinion after launch.
+
+## At a Glance
+
+| Property | Value |
+|:---|:---|
+| **Type** | Workflow |
+| **Output file** | `.engineering-docs/3-user-personas.md` |
+| **Estimated time** | 2–4 hours |
+| **Depends on** | `business-concept` (target users, value proposition, problem statement) |
+| **Target length** | 3–5 pages (excluding appendices) |
+
+## Best For
+
+- Defining target users and their goals before or alongside writing a technical specification
+- Resolving disagreement about who a feature is really for and what problem it solves for them
+- Defining the success metrics and KPIs a project will be judged against post-launch
+- Specifying exactly what analytics events must be instrumented to measure those metrics
+
+## How to Invoke It
+
+<CodeGroup>
+```bash Claude Code
+engineering-docs:user-personas-behavior Define the target user personas and jobs-to-be-done for our new expense-reporting tool.
+```
+
+```bash Gemini CLI
+@engineering-docs user-personas-behavior Write the user behavior and success metrics document for our marketplace's seller-side experience.
+```
+
+```bash Generic / any agent
+user-personas-behavior [product name]
+```
+</CodeGroup>
+
+<Note>
+`user-personas-behavior` is automatically invoked as Phase 0.6 when you use `using-engineering-docs`. Invoke it directly when you already have a business concept and want to produce or update the personas document alone.
+</Note>
+
+## Example Scenarios
+
+<CardGroup cols={2}>
+  <Card title="Expense-reporting tool" icon="receipt">
+    "Define the target user personas and jobs-to-be-done for our new expense-reporting tool."
+  </Card>
+  <Card title="Onboarding redesign" icon="user-plus">
+    "What should we track to know if our onboarding redesign is actually working?"
+  </Card>
+  <Card title="Marketplace seller experience" icon="store">
+    "Write the user behavior and success metrics document for our marketplace's seller-side experience."
+  </Card>
+</CardGroup>
+
+## Interview Process
+
+The skill loads all prior documents first, then asks a maximum of 3 focused questions about information that isn't already captured.
+
+**Context loading:** Before asking any questions, the skill reads all prior documents in `.engineering-docs/` and extracts target users, value proposition, and problem statement. Only information that is genuinely missing triggers a question.
+
+**Skill-specific questions:**
+
+1. **Distinct user types** — Are there meaningfully different types of users with different goals, or is this one persona with varying context?
+2. **Business success definition** — What does the business need to see happen for this to be considered a win — retention, revenue, reduced support load, something else?
+3. **Existing measurement** — Is there analytics tooling already in place, or does this plan need to specify what to stand up?
+
+All questions are delivered one at a time via tool calls with multiple-choice options and an "I don't know, you decide" escape hatch.
+
+## Key Concepts
+
+<Accordion title="Jobs-to-Be-Done (JTBD), Not Demographics">
+  Personas are defined by the job they are hiring the product to do — not by age, gender, job title, or other demographic labels. Demographics rarely change what gets built and can bake in assumptions that don't hold.
+
+  **JTBD format:** "When [situation], I want to [motivation], so I can [expected outcome]."
+
+  **Not useful:** "Priya, 34, marketing manager."
+
+  **Useful:** "A user who needs to approve or reject an expense report in under 60 seconds from a phone, several times a day."
+
+  The second version tells an implementer exactly what to build and how to judge whether they succeeded.
+</Accordion>
+
+<Accordion title="Behavior Over Biography">
+  Describe usage patterns that affect design decisions:
+  - **Frequency of use** — daily vs. rare
+  - **Context of use** — mobile/on-the-go vs. desk
+  - **Domain proficiency** — novice vs. power user
+  - **Friction tolerance** — how much delay is acceptable for this specific task
+
+  These directly inform UI and flow decisions; biographical detail generally doesn't.
+</Accordion>
+
+<Accordion title="Primary vs. Secondary Personas">
+  Not every user matters equally to every decision. Name the primary persona(s) whose needs win in a trade-off, and secondary personas whose needs matter but yield when in conflict.
+
+  Undeclared priority between personas causes design debates to stall indefinitely. The document must declare an explicit priority ranking with rationale.
+</Accordion>
+
+<Accordion title="Leading vs. Lagging Success Metrics">
+  - **Leading indicators:** Observable quickly, predict future outcomes (e.g., % of users completing onboarding step 1). Let you course-correct before lagging indicators are even measurable.
+  - **Lagging indicators:** The actual business outcome, observable only after time passes (e.g., 90-day retention, revenue).
+
+  A good metrics set has both. Every persona needs at least one leading and one lagging indicator with a specific numeric target.
+</Accordion>
+
+<Accordion title="Analytics Event Naming Conventions">
+  All analytics events follow a strict `snake_case verb_noun` convention:
+
+  - **Format:** `{verb}_{noun}` — e.g., `signup_started`, `report_exported`, `payment_failed`
+  - **Verbs:** `created`, `updated`, `deleted`, `viewed`, `started`, `completed`, `failed`, `clicked`, `submitted`
+  - **Nouns:** the entity or action affected — `user`, `report`, `payment`, `onboarding_step`
+  - **Properties:** same convention — `time_to_complete_sec`, `error_code`, `source_channel`
+  - Never use camelCase, PascalCase, or ambiguous names like `trackEvent1`
+
+  Every event needs a precise name, the exact trigger condition, the properties captured, and which metric it feeds — this becomes the developer's instrumentation checklist.
+</Accordion>
+
+<Accordion title="Negative Personas (Who This Is NOT For)">
+  Explicitly defining who this product is *not* designed to serve prevents scope creep and helps the team say "no" to feature requests that would dilute the product for its core users.
+
+  For each negative persona:
+  - State who they are and why they are not a target
+  - Identify what they would want that conflicts with primary persona needs
+  - Note the risk if this persona is accidentally prioritized
+</Accordion>
+
+<Accordion title="Accessibility Personas">
+  At least one persona must include an accessibility dimension to ensure a11y is designed in, not bolted on:
+
+  - **Visual impairment** — uses screen readers; needs semantic HTML, alt text, ARIA labels
+  - **Motor impairment** — uses keyboard-only or switch navigation; needs large touch targets
+  - **Cognitive load** — needs clear language, predictable patterns, minimal cognitive overhead
+  - **Situational impairment** — using the product in bright sunlight, noisy environment, or one-handed
+
+  Accessibility personas influence flow design (keyboard tab order, focus management, error recovery) — not just visual design.
+</Accordion>
+
+## The 5-Phase Generation Process
+
+<Steps>
+  <Step title="Phase 1: Socratic Clarification (Mandatory Interview)">
+    Load all prior documents. Extract already-known user information. Ask at most 3 questions about distinct user types, business success definition, and existing measurement tooling.
+  </Step>
+  <Step title="Phase 2: Persona Definition (60–90 min)">
+    Define each persona using JTBD framing and behavior/context, not demographics. Mark primary vs. secondary. Include at least one accessibility persona. Define negative personas.
+  </Step>
+  <Step title="Phase 3: Journey and Pain Point Mapping (40–60 min)">
+    For each primary persona, map the end-to-end journey across all touchpoints: discovery, first use, repeated use, and eventual advocacy or churn. Capture emotional state, moments of delight, moments of friction, and handoffs between channels or sessions.
+  </Step>
+  <Step title="Phase 4: Success Metrics (40–60 min)">
+    Define leading and lagging indicators per persona and for the business overall. Every metric needs a specific numeric target and a measurement methodology — not just "track engagement."
+  </Step>
+  <Step title="Phase 5: Analytics and Event Tracking Plan (60 min)">
+    For each metric, specify the exact event name, trigger condition, properties captured, and which metric it feeds. Include implementation notes: analytics platform choice, identity resolution, event delivery (client-side vs. server-side), data warehouse, and consent/privacy handling.
+  </Step>
+</Steps>
+
+## What It Produces
+
+The output document (`3-user-personas.md`) covers 9 sections:
+
+<Accordion title="Full output section list">
+  1. **Overview** — 2–3 sentences on what product/feature this covers and what decisions this document informs
+  2. **Personas** — one block per persona: JTBD statement, behavior/context table (frequency, context, proficiency, friction tolerance), current alternative, pain point addressed, accessibility needs
+  3. **Negative / Exclusion Personas** — who the product is NOT for; what they'd want that conflicts; risk if prioritized
+  4. **User Journey Map** — per primary persona: stage, user action, emotional state, touchpoint, friction/delight
+  5. **Persona Priority** — explicit ranking with rationale for tie-breaking design decisions
+  6. **Success Metrics** — leading indicators table (metric, target, what it measures, measurement methodology) + lagging indicators table (metric, target, measured at, measurement methodology)
+  7. **Analytics and Event Tracking Plan** — event name, fires when, properties captured, feeds which metric; implementation notes on platform, identity resolution, delivery, data warehouse, and consent
+  8. **Persona Validation Plan** — per persona: validation method, timeline, invalidation criteria, revision trigger
+  9. **Open Questions** — unresolved items with owner
+</Accordion>
+
+### Persona Validation Plan
+
+Personas are hypotheses, not facts. For each persona the document defines:
+
+| Field | What It Contains |
+|:---|:---|
+| **Validation method** | User interviews, analytics cohort analysis, surveys, prototype testing |
+| **Validation timeline** | Pre-launch, first 30 days, quarterly review |
+| **Invalidation criteria** | Observed behavior that would disprove the persona (e.g., fewer than 10% complete the core action within 5 minutes) |
+| **Revision trigger** | Data threshold that triggers a persona update |
+
+## Common Gotchas
+
+<Warning>
+**Defining personas by demographics instead of behavior.** "Sarah, 28, marketing manager" tells an implementer nothing actionable. Define every persona by the job they are hiring the product to do, their usage context, and their friction tolerance.
+</Warning>
+
+<Warning>
+**Listing only lagging indicators.** Revenue and retention take weeks or months to measure. Without leading indicators, you cannot course-correct until it is too late. Every persona needs both.
+</Warning>
+
+<Warning>
+**Writing analytics events that are too vague to instrument.** "Track user engagement" is not an event specification. Every event needs a precise name, exact trigger condition, properties captured, and which metric it feeds.
+</Warning>
+
+<Warning>
+**Not declaring persona priority for tie-breaking.** When two personas have conflicting needs, an undeclared priority means the design debate stalls indefinitely. Always rank personas so that trade-off decisions have a deterministic resolution.
+</Warning>
+
+## Handoff
+
+<CardGroup cols={2}>
+  <Card title="Reads From" icon="arrow-down">
+    - `1-business-plan.md` — target users, value proposition, problem statement
+  </Card>
+  <Card title="Feeds Into" icon="arrow-up">
+    - `ux-flow-specification` — persona goals, journey context, friction tolerance
+    - `technical-specification` — user-driven functional requirements, success metrics as NFRs
+    - `design-system-specification` — persona context and usage patterns for UI decisions
+  </Card>
+</CardGroup>
+
+## Quality Gate
+
+Before marking this document as `final`, verify:
+
+- [ ] Every persona is defined by a job-to-be-done with behavior and context, not just demographic labels
+- [ ] Each persona has both leading and lagging success metrics with specific numeric targets
+- [ ] The analytics event tracking plan specifies exact event names, trigger conditions, properties, and which metric each event feeds
+- [ ] Persona priority ranking is declared with rationale, providing a deterministic tie-breaker for design decisions
+- [ ] At least one validation criterion is defined for each persona explaining how post-launch data will confirm or revise the hypothesis
+- [ ] At least one persona includes an accessibility dimension
+- [ ] Negative personas are defined to prevent scope creep

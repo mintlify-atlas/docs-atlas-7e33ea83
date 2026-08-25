@@ -1,0 +1,270 @@
+---
+title: "Invoke Engineering Docs skills directly without the orchestrator"
+sidebarTitle: "Standalone Skills"
+description: "When you already know which document you need, call any of the 22 skills directly — bypassing the orchestrator's full pipeline for targeted, single-artifact output."
+---
+
+Engineering Docs' **standalone mode** lets you call any of the 22 skills directly when you already know what document you need. Every skill in the plugin is independently callable — you don't have to go through the `using-engineering-docs` orchestrator. Standalone mode skips the orchestrator's phase sequencing and context-loading pipeline, and goes straight to the interview and generation for the one document you asked for.
+
+Each skill still interviews you for what it needs — standalone doesn't mean unguided. It means the skill asks its own focused questions rather than the orchestrator's broader project-level intake.
+
+<Tip>
+  Use standalone mode when the orchestrator's full pipeline would be overkill. If you already have a running system and just need a threat model for a new service, a runbook for a new team member, or an ADR for a decision you're making today — standalone is the right path.
+</Tip>
+
+---
+
+## When to use standalone mode
+
+<CardGroup cols={2}>
+  <Card title="You have partial documentation" icon="file-check">
+    Your `.engineering-docs/` folder exists but you need one specific artifact — a runbook, a new ADR, a blueprint for a single feature.
+  </Card>
+  <Card title="You want a single document fast" icon="zap">
+    The orchestrator's full pipeline takes hours. Standalone delivers one document in minutes, targeted to exactly what you asked for.
+  </Card>
+  <Card title="The orchestrator already ran" icon="history">
+    The full pipeline completed for a project, but requirements changed and one document needs to be regenerated or extended.
+  </Card>
+  <Card title="You're producing a reactive artifact" icon="alert-triangle">
+    Incident postmortems, threat models for specific incidents, ADRs for decisions in flight — these arise on demand, not as part of a plan.
+  </Card>
+</CardGroup>
+
+---
+
+## What standalone mode skips
+
+When you invoke a skill directly, the orchestrator's multi-phase pipeline does **not** run:
+
+- ❌ Phase 0 business concept interview
+- ❌ Standing constraint questions (team size, hosting, budget, timeline, compliance)
+- ❌ Sequencing plan preview and document ordering
+- ❌ Cross-document consistency pass against the full document set
+- ❌ Master index update
+
+What **does** still happen:
+
+- ✅ The skill's own clarifying interview (one question at a time, via tool calls)
+- ✅ Document generation using the skill's full template
+- ✅ YAML frontmatter metadata header on the output document
+- ✅ Reading of any prior documents you reference in your prompt (context you provide is used)
+
+---
+
+## How to invoke a skill directly
+
+Address the skill by name in your prompt. You can reference the skill using its kebab-case name:
+
+```text Direct skill invocation syntax
+[skill-name]: [your context and what you need]
+```
+
+Or simply describe what you want in enough detail that the skill activates naturally:
+
+<Tabs>
+  <Tab title="Explicit invocation">
+    ```text
+    engineering-docs:security-threat-model
+
+    Create a security threat model for a multi-tenant SaaS platform that
+    stores customer PII and processes payments through Stripe Connect.
+    The platform is built on Node.js with a PostgreSQL database. Each tenant
+    has isolated data but shares the same application infrastructure.
+    ```
+  </Tab>
+  <Tab title="Natural language">
+    ```text
+    Write a technical specification for a webhook delivery system.
+
+    The system needs to:
+    - Accept webhook registrations from merchants (URL + event selection)
+    - Deliver event payloads as signed HTTP POST requests
+    - Verify delivery with HMAC-SHA256 signatures per-merchant secret
+    - Retry failed deliveries with exponential backoff (max 3 retries)
+    - Handle 10,000 events per minute at peak
+    Built in Go with PostgreSQL and Redis.
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  If the context you provide already contains details the skill would normally ask for (e.g., "Go with PostgreSQL and Redis"), the skill will **not** re-ask for that information. Prior context in your prompt is respected — only genuinely missing information is asked for.
+</Note>
+
+---
+
+## Popular standalone use cases
+
+### Security threat model for an existing system
+
+Use the `security-threat-model` skill when you need a STRIDE analysis for a specific service or feature — without running the full project pipeline.
+
+```text
+engineering-docs:security-threat-model
+
+We're adding a Stripe Connect integration to our existing SaaS platform.
+The integration will handle connected account onboarding, payout scheduling,
+and fee collection. We need a threat model focused specifically on this
+payment surface — our existing system threat model is already documented.
+
+The platform is multi-tenant, Node.js + PostgreSQL, deployed on AWS.
+Connected account data includes bank account details and personal
+verification documents (KYC).
+```
+
+**What the skill interviews you for:**
+- What external attack surface does this introduce (new webhook endpoints, redirect flows)?
+- What data does your platform store vs. pass through to Stripe?
+- Who has admin-level access to payout controls?
+
+**What you get:** A STRIDE-based threat model covering spoofing, tampering, repudiation, information disclosure, denial of service, and elevation of privilege — with a risk register and prioritized mitigations, specific to the Stripe Connect surface.
+
+---
+
+### Technical runbook for a production service
+
+Use `technical-runbook` when you're onboarding a new on-call rotation or documenting an existing service that was never formally documented.
+
+```text
+engineering-docs:technical-runbook
+
+Write an on-call runbook for our background job processing service.
+
+The service uses Bull (Node.js) with Redis as the queue store. It processes
+three job types: email delivery, PDF generation, and third-party webhook
+dispatch. It runs on 3 worker instances behind a load balancer on AWS ECS.
+
+Our current on-call pain points:
+- Jobs get stuck in "waiting" with no obvious cause
+- PDF generation occasionally runs out of memory and crashes a worker
+- We have no documented escalation path when the queue falls behind
+```
+
+**What the skill interviews you for:**
+- What monitoring and alerting do you currently have in place?
+- What's the escalation path when a worker goes down?
+- What's the rollback procedure if a bad deploy causes job failures?
+
+**What you get:** A Google SRE-style operations manual with runbook sections for common failure modes, step-by-step diagnostic procedures, escalation contacts, and rollback procedures.
+
+---
+
+### Architecture Decision Record for a new decision
+
+Use `architecture-decision-record` when you're making a significant technical decision and want to capture the context, options considered, and rationale — before the institutional memory fades.
+
+```text
+engineering-docs:architecture-decision-record
+
+We're deciding whether to use event sourcing for our order management
+system. We're currently using a traditional CRUD approach with PostgreSQL.
+The motivation is auditability — every change to an order needs to be
+fully auditable for compliance.
+
+Help me write an ADR for this decision.
+```
+
+**What the skill interviews you for:**
+- What are the constraints (team familiarity with event sourcing, operational overhead tolerance)?
+- What's the read performance requirement for the order history view?
+- Are there other systems that need to consume these events?
+
+**What you get:** An immutable ADR in MADR format — with context, decision drivers, options considered, the decision made, and consequences (positive and negative).
+
+---
+
+### Test strategy for a specific service
+
+Use `test-strategy-document` when you need a testing plan scoped to one service rather than a full-system test strategy.
+
+```text
+engineering-docs:test-strategy-document
+
+Write a test strategy for our payments service — a Node.js microservice
+that handles Stripe charge creation, refunds, and dispute management.
+
+The service is called internally by our main API and exposes no public
+endpoints. It integrates with Stripe's API and our PostgreSQL database.
+Our current test coverage is ~30% and we have no contract tests between
+this service and its callers.
+```
+
+**What the skill interviews you for:**
+- What CI system are you using, and what are the current gate requirements?
+- What's the acceptable test execution time for the full suite?
+- Do you need E2E tests against Stripe's sandbox, or will mocks suffice?
+
+**What you get:** A testing pyramid document with unit, integration, and contract test requirements, mocking strategy for Stripe, CI gate definitions, and coverage targets — all scoped to the payments service.
+
+---
+
+### Implementation plan for a targeted migration
+
+Use `implementation-plan` when you're planning a scoped change — a migration, a refactor, or a feature rollout — and need a dependency-ordered build sequence.
+
+```text
+engineering-docs:implementation-plan
+
+Create an implementation plan for migrating our monolithic PHP application
+to a microservices architecture. The first service to extract is the billing
+module (Stripe subscriptions, invoice generation, payment failure handling).
+
+The monolith is a Laravel 10 app. The target billing service will be Node.js.
+We need zero downtime during the migration — the monolith must continue
+handling billing while we cut over.
+```
+
+**What the skill interviews you for:**
+- What's the data migration strategy for billing records?
+- What's the feature flag / traffic-splitting approach for the cutover?
+- What are the rollback criteria and how quickly can you roll back?
+
+**What you get:** A phase-gated implementation plan with dependency ordering, go/no-go criteria at each phase boundary, and explicit rollback procedures.
+
+---
+
+## Standalone invocation: what the skill's interview looks like
+
+Regardless of which skill you invoke, the interview follows the same rules:
+
+1. **One question per tool call** — never batched
+2. **Multiple-choice options preferred** — with "I don't know, you decide" as an escape hatch
+3. **No re-asking** — context you provided in your prompt is used; only genuinely missing information is asked for
+4. **Maximum 2–3 questions** — the skill extracts what it needs efficiently, then generates
+
+```text Example interview exchange — security-threat-model
+Skill: What external entry points does the Stripe Connect integration introduce?
+
+a) New webhook endpoints receiving Stripe events
+b) OAuth redirect flows for connected account onboarding
+c) Both webhook endpoints and OAuth flows
+d) Neither — it's entirely server-to-server API calls
+
+[You select: c]
+
+Skill: For the KYC verification documents (bank details, personal ID) —
+does your platform store copies, or do you pass through to Stripe and
+store only a Stripe reference ID?
+
+a) We store copies in our own database
+b) We store only Stripe reference IDs / tokens
+c) We store copies encrypted at rest
+d) I don't know — you decide
+
+[You select: b]
+
+Skill: Generating threat model now...
+```
+
+---
+
+## Cross-reference
+
+For the full list of available skills, their descriptions, output formats, and what each document contains, see the [Skills Reference](/skills/using-engineering-docs).
+
+Each skill's reference page includes:
+- What the skill produces
+- What questions to expect in the interview
+- The document template structure
+- Example outputs

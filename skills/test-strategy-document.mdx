@@ -1,0 +1,248 @@
+---
+title: "test-strategy-document skill: testing pyramid, CI gates, and coverage targets"
+sidebarTitle: "Test Strategy"
+description: "Invoke the test-strategy-document skill to produce a full QA plan: testing pyramid, mocking contracts, CI runsheet, coverage thresholds, and environment architecture."
+---
+
+The `test-strategy-document` skill produces a comprehensive testing strategy and QA execution plan for any product, service, or feature set. It applies Mike Cohn's Testing Pyramid to distribute tests for maximum speed and coverage, defines explicit mocking boundaries for every external dependency, establishes measurable code-coverage and mutation-score thresholds, and generates a full CI/CD runsheet with step-by-step quality gates. This is an always-core skill — every project benefits from a documented test strategy before development or refactoring begins, because a strategy produced after the fact describes what happened rather than governing what should happen.
+
+<Info>
+  **Type:** Workflow &nbsp;·&nbsp; **Estimated time:** 2–4 hours &nbsp;·&nbsp; **Frameworks:** Mike Cohn Testing Pyramid, BDD/Gherkin, Pact contract testing, SAST/DAST &nbsp;·&nbsp; **Output file:** `15-test-strategy.md` &nbsp;·&nbsp; **Inclusion:** Always-core — every project
+</Info>
+
+## Best for
+
+<CardGroup cols={2}>
+  <Card title="New codebase QA framework" icon="vials">
+    Establish a testing architecture from scratch — toolchain selection, pyramid distribution, environment strategy — before the first PR lands.
+  </Card>
+  <Card title="Critical feature release QA plan" icon="check-double">
+    Define the specific test coverage, acceptance criteria, and CI gates that must pass before a high-risk feature ships.
+  </Card>
+  <Card title="Mocking contracts for third-party APIs" icon="code-branch">
+    Define which external APIs get a real sandbox, which get a WireMock contract, and which get a stub — and document why.
+  </Card>
+  <Card title="CI/CD test pipeline definition" icon="arrow-rotate-right">
+    Produce the exact YAML runsheet — static analysis, unit tests, integration tests, mutation scores — that enforces quality on every push.
+  </Card>
+</CardGroup>
+
+## What it produces
+
+The skill outputs `15-test-strategy.md`, a document that serves as the definitive testing contract for the project:
+
+- **Quality objectives and numeric gates** — coverage percentage, mutation score index, static analysis level, E2E success rate, all enforced by named CI tools
+- **Testing pyramid with toolchain** — unit / integration / E2E distribution ratios with named test runners for each layer
+- **Mocking matrix** — every external integration mapped to its mocking strategy and sandbox endpoint
+- **Database isolation strategy** — transactional rollback, fresh containers, or seeded snapshots — consistent across local and CI environments
+- **Performance testing plan** — load, stress, soak, and spike test definitions with k6/Locust/JMeter profiles and pass/fail thresholds
+- **Contract testing specification** — Pact consumer/provider contracts or Dredd/Schemathesis OpenAPI verification setup
+- **Test data management rules** — fixtures vs. factories vs. seeds, and the sensitive data policy that governs all environments
+- **Security scanning gates** — SAST, DAST, dependency scanning, and secrets detection, each with the severity level that blocks a build
+- **BDD acceptance scenarios** — Gherkin Given-When-Then for every critical user path, ready to drive E2E automation
+- **Flaky test handling policy** — quarantine rules, retry limits, resolution SLAs
+- **Environment architecture diagram** — local, CI, staging, and production provisioning strategy as a Mermaid graph
+- **CI/CD runsheet** — complete GitHub Actions / GitLab CI YAML snippet with every quality gate in order
+
+## How to invoke it
+
+<CodeGroup>
+```bash Claude Code
+claude "test-strategy-document [product or service name]"
+
+# Examples:
+claude "test-strategy-document new subscription billing module"
+claude "test-strategy-document merchant API gateway integration"
+claude "test-strategy-document checkout process E2E and integration tests"
+```
+
+```bash Gemini CLI
+gemini "test-strategy-document [product or service name]"
+
+# Examples:
+gemini "test-strategy-document new subscription billing module"
+gemini "test-strategy-document merchant API gateway integration"
+```
+
+```bash Generic (any agent)
+npx engineering-docs test-strategy-document "[product or service name]"
+```
+</CodeGroup>
+
+<Tip>
+  Include your tech stack and critical external integrations in the invocation. For example: `test-strategy-document payment processing module — PHP 8.3 / PHPUnit, connects to bank API and Stripe`. The more context provided, the fewer clarifying questions and the more actionable the mocking matrix.
+</Tip>
+
+## Example scenarios
+
+| Invocation | Primary focus |
+|:---|:---|
+| `test-strategy-document new subscription billing module` | Domain logic unit tests, billing event integration tests, payment provider sandbox contracts |
+| `test-strategy-document merchant API gateway integration` | Contract testing against third-party API spec, WireMock stubs for unit layer, Dredd verification in CI |
+| `test-strategy-document checkout process E2E and integration tests` | Playwright E2E coverage of full purchase funnel, database rollback isolation for integration layer |
+
+## Key concepts
+
+### The Agile Testing Pyramid
+
+The skill enforces the Cohn pyramid distribution rather than letting teams accidentally build an inverted pyramid of slow, brittle E2E tests:
+
+```
+           /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
+          /   E2E Tests (~10%)    \      Playwright / Cypress
+         /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
+        /  Integration Tests (~20%) \    API + DB + Docker containers
+       /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\
+      /      Unit Tests (~70%)       \   PHPUnit / Jest / Vitest
+     /___________________________________\
+```
+
+Each layer has a defined execution speed target:
+
+| Layer | Speed target | Isolation policy | Run trigger |
+|:---|:---|:---|:---|
+| Unit | < 10 ms per test | 100% isolated — no DB, no HTTP; all external calls mocked | Local save / pre-commit |
+| Integration | < 200 ms per test | Isolated test DB; transactions rolled back after each test | Pull request / CI build |
+| E2E | 2–10 s per test | Full stack in Docker; fresh environment per run | Nightly / release candidate |
+
+### Mocking boundaries — never mock what you don't own
+
+The strategy distinguishes between three types of test double:
+
+- **Mocks** — verify behaviour by asserting specific calls to external interfaces
+- **Stubs** — provide hardcoded values to isolate components under test
+- **Fakes** — simplified working implementations (e.g., SQLite in-memory for repository tests)
+
+For third-party vendor APIs, the rule is clear: **never mock internal implementation details of a system you don't own**. Instead use the vendor's official sandbox endpoint (for integration/E2E layers) or a WireMock/recorded-response server (for unit and contract layers) that can be updated when the real API changes.
+
+### Performance testing layers
+
+Performance testing is a distinct test layer, not a one-off exercise. The skill defines four test types with pass/fail thresholds:
+
+| Test type | Goal | Tool options | Typical threshold |
+|:---|:---|:---|:---|
+| Load | Normal concurrent traffic | k6, Locust, JMeter | p95 < 200 ms, error rate < 0.1% |
+| Stress | Find the breaking point | k6, JMeter | Graceful degradation, no crash |
+| Soak | Sustained load over hours | k6, Locust | No memory leak, stable latency |
+| Spike | Sudden burst | k6 | Recovery within 60 seconds |
+
+### Contract testing — catching breaking changes before production
+
+For systems with internal or external API boundaries, Pact consumer-driven contracts or Dredd/Schemathesis OpenAPI verification catch breaking changes before they reach production:
+
+- The **consumer** defines what it expects from the provider in a contract file
+- The **provider** verifies it satisfies every consumer contract in CI
+- Any response shape change that violates a contract fails the build — not a production incident
+
+### Security scanning in CI
+
+Security gates are integrated into the CI pipeline by default, not bolted on later:
+
+| Gate type | What it catches | Example tools | Build policy |
+|:---|:---|:---|:---|
+| SAST | SQL injection, XSS, insecure crypto in source code | Semgrep, SonarQube, PHPStan, ESLint security plugins | Block on High/Critical |
+| DAST | Runtime vulnerabilities and misconfigurations | OWASP ZAP, Burp Suite automated scan | Block on High/Critical, nightly |
+| Dependency scan | Known CVEs in third-party packages | Snyk, Dependabot, `npm audit`, `composer audit` | Block on Critical, warn on High |
+| Secrets detection | Committed API keys and credentials | TruffleHog, `git-secrets`, GitHub secret scanning | Block unconditionally |
+
+### BDD / Gherkin acceptance scenarios
+
+The skill produces Given-When-Then scenarios in user-visible terms, not API mechanics. These scenarios map directly to E2E automation scripts and serve as the acceptance criteria for each critical user flow.
+
+```gherkin
+# ✅ Correct — describes user behaviour
+Scenario: Successful manual payment verification
+  Given a merchant is logged into the admin dashboard
+  And has a pending manual transaction "TXN-772"
+  When they click the "Approve" button
+  Then the transaction status changes to "Completed"
+  And the ledger receives matching debit and credit entries
+
+# ❌ Wrong — describes implementation, not behaviour
+Scenario: POST /api/payments/approve with body {"id":"TXN-772"}
+```
+
+### Flaky test policy
+
+Flaky tests erode confidence in the entire test suite. The generated strategy includes a formal policy:
+
+| Rule | Threshold | Action |
+|:---|:---|:---|
+| Flaky detection | 3 consecutive failures on same code | Auto-move to quarantine suite |
+| Retry limit | 2 retries per test in CI | Pass on retry = flagged for investigation, not blocked |
+| Resolution SLA | 2 weeks in quarantine | Fix or delete — a test that can't be made reliable is worse than no test |
+| Quarantine reporting | Weekly count report | Increasing trend triggers infrastructure investigation |
+
+## Interview process
+
+The skill reads all prior `.engineering-docs/` documents to load known context before asking anything. It then asks a maximum of **2–3 targeted questions** via tool calls:
+
+| Phase | Duration | What happens |
+|:---|:---|:---|
+| **Phase 1** | Pre-start | Reads business plan, technical specification, system architecture, and implementation plan for existing context |
+| **Interview** | Interactive | Asks up to 3 questions: test runner frameworks in use, and which external APIs need mocks vs. sandboxes |
+| **Phase 2** | 60–90 min | Testing pyramid architecture — layers, toolchains, ratios, coverage targets |
+| **Phase 3** | 60–90 min | Mocking and environment strategy — mock contracts, sandbox endpoints, database rollback rules |
+| **Phase 4** | 60–90 min | BDD scenarios and CI runsheet — Gherkin for critical paths, YAML pipeline steps |
+| **Phase 5** | After review | Applies feedback, cascades changes through coverage targets and CI gates, re-checks consistency |
+
+## Output structure
+
+<Accordion title="Full document section map">
+
+| # | Section | Contents |
+|:---|:---|:---|
+| 1 | Overview & Quality Objectives | Purpose statement; numeric gate table: coverage %, mutation score, static analysis level, E2E success rate |
+| 2 | Testing Levels & Toolchain | Mermaid pyramid diagram; unit / integration / E2E layer specs with speed targets, isolation policy, and run triggers |
+| 3 | Mocking & Staging Integrations | Mocking matrix table; database setup and rollback code examples |
+| 4 | Performance Testing | Load/stress/soak/spike table with tool, load profile, thresholds, and frequency; pass/fail gate definition |
+| 5 | Contract Testing | Consumer/provider table with tool and verification frequency; breaking change policy |
+| 6 | Test Data Management | Data type × strategy × tool × isolation table; sensitive data policy |
+| 7 | Security Scanning Gates | SAST/DAST/dependency/secrets table with tool, what it catches, and CI gate severity |
+| 8 | Acceptance Test Scenarios | Gherkin BDD scenarios for all critical user paths and edge cases |
+| 9 | Flaky Test Handling Policy | Quarantine rules, retry limits, SLA table, quarantine suite location |
+| 10 | Test Environment Architecture | Mermaid environment graph; environment × provisioning × data × lifespan × production-mirror table |
+| 11 | CI/CD Test Runner Runsheet | Full GitHub Actions / GitLab CI YAML snippet |
+
+</Accordion>
+
+## Handoff
+
+**Reads from:**
+
+| Document | What it consumes |
+|:---|:---|
+| `1-business-plan.md` | Problem domain, user constraints, regulatory requirements |
+| `5-technical-specification.md` | Functional and non-functional requirements to test against |
+| `7-system-architecture.md` | Tech stack, integration points, and infrastructure boundaries |
+| `14-implementation-plan.md` | Build sequence and feature scope to derive test coverage requirements |
+
+**Feeds into:**
+
+| Document | What it provides |
+|:---|:---|
+| `16-deployment-plan.md` | CI gates that must pass before any deployment proceeds |
+| `17-technical-runbook.md` | Test procedures and diagnostic commands for operations |
+| `adr/` | Testing architecture decisions that warrant permanent records |
+
+## Quality gate
+
+Before marking the document `final`, the agent verifies five gates:
+
+<Steps>
+  <Step title="Pyramid distribution defined with numeric targets">
+    Unit, integration, and E2E layers each have a specific percentage target — not just "mostly unit tests."
+  </Step>
+  <Step title="Every external integration has a named mocking strategy">
+    The mocking matrix names the specific tool or sandbox endpoint for each dependency. "Mock the HTTP calls" is not sufficient.
+  </Step>
+  <Step title="Database isolation strategy is explicitly stated">
+    The same strategy must apply consistently across local development and CI. Divergence between environments is the most common source of "works on my machine" failures.
+  </Step>
+  <Step title="CI/CD runsheet includes static analysis, unit, integration, and at least one higher-level gate">
+    The runsheet must include static analysis, unit tests, integration tests, and either mutation testing or E2E tests. A runsheet with only unit tests is not a complete quality gate.
+  </Step>
+  <Step title="Coverage thresholds are numeric and CI-enforced">
+    Every metric target (coverage %, mutation score index, Lighthouse accessibility score) must have a specific numeric value and be enforced by a named CI check — not just documented as a goal.
+  </Step>
+</Steps>

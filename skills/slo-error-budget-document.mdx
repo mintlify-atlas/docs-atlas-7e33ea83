@@ -1,0 +1,228 @@
+---
+title: "slo-error-budget-document skill: SLI/SLO targets and burn-rate alerts"
+sidebarTitle: "SLO & Error Budget"
+description: "Turn vague reliability goals into measurable SLI/SLO targets, a pre-agreed error budget policy, and multi-window burn-rate alerts that page on-call at the right urgency level."
+---
+
+The `slo-error-budget-document` skill produces a rigorous SLO document that turns "the service should be reliable" into a specific, measurable, and enforceable contract. Every other reliability artifact in the engineering-docs suite — the runbook, the deployment plan, the postmortem — references an SLA/SLO without defining one; this skill is where that number comes from, how it is justified, and what happens when it is breached. An SLO without an error budget policy is just a wish: this skill applies Google SRE Workbook principles to give it teeth.
+
+<Info>
+**Type:** Workflow · **Estimated time:** 2–4 hours · **Standards:** Google SRE Workbook — multi-window multi-burn-rate alerting · **Output file:** `.engineering-docs/19-slo-error-budget.md` · **Conditional skill** — include once real users depend on the service's uptime and especially before committing to an external SLA with customers or partners.
+</Info>
+
+## Best for
+
+<CardGroup cols={2}>
+  <Card title="Pre-launch reliability targets" icon="bullseye">
+    Defining reliability targets for a new or existing service before launch, before "the service seems fine" becomes the only metric.
+  </Card>
+  <Card title="External SLA with margin" icon="file-contract">
+    Formalizing a customer-facing SLA backed by an internal SLO with a deliberate buffer to absorb missed internal targets.
+  </Card>
+  <Card title="Velocity vs. reliability conflicts" icon="scale-balanced">
+    Resolving recurring debates between shipping velocity and reliability work with data instead of opinion — the error budget is the arbiter.
+  </Card>
+  <Card title="Alert threshold source of truth" icon="bell">
+    Setting the exact alerting thresholds that a runbook's alert-response procedures are triggered by.
+  </Card>
+</CardGroup>
+
+## What it produces
+
+The generated SLO document covers the full lifecycle from measurement to policy enforcement:
+
+| Section | Purpose |
+|:---|:---|
+| **Overview & Critical User Journeys** | Maps SLIs back to real user actions — not infrastructure metrics |
+| **SLIs with Implementation Queries** | Exact Prometheus/Datadog queries that implement each indicator |
+| **SLOs** | Numeric targets per SLI with measurement windows and evidence-based rationale |
+| **Error Budget Calculation** | Budget in concrete terms (e.g., "43 minutes of full downtime-equivalent per 30 days") |
+| **Multi-Window Burn-Rate Alerts** | Three alert tiers: fast burn (page now), moderate burn (page soon), slow burn (ticket) |
+| **Error Budget Policy** | Pre-agreed policy at four budget levels — from "ship normally" to "feature freeze" |
+| **Error Budget Dashboard** | Panel-by-panel dashboard design that answers "how much budget remains?" in 5 seconds |
+| **Alerting Rule Implementation** | Deployable Prometheus YAML rules and Datadog monitor configuration |
+| **SLO Breach Response Procedure** | Different procedures for internal SLO breach vs. external SLA breach |
+| **External SLA & Buffer Sizing** | Explicit gap between internal SLO and external SLA, sized by incident frequency and MTTR |
+| **Dependency-Aware SLOs** | Composite SLO calculated from dependency chain; shared-fate risks documented |
+| **Review & Re-Baselining** | Quarterly review structure with agenda, attendees, and decision authority |
+
+## How to invoke it
+
+Pass the service or API name as the argument. Providing historical uptime data, any existing external SLA, and your monitoring stack gives the agent everything it needs to set justified targets rather than round numbers.
+
+<CodeGroup>
+```bash Claude Code
+claude "Define SLOs for our checkout API. We currently have no formal target — customers complain when checkout is slow but we've never quantified it. We use Prometheus/Grafana for metrics. We are not yet contractually bound to any external SLA."
+```
+
+```bash Gemini CLI
+gemini "Define SLOs for our checkout API. We currently have no formal target — customers complain when checkout is slow but we've never quantified it. We use Prometheus/Grafana for metrics. We are not yet contractually bound to any external SLA."
+```
+
+```bash Generic / npx
+npx engineering-docs slo-error-budget-document "checkout API"
+```
+</CodeGroup>
+
+## Example scenarios
+
+<Accordion title="Pre-SLA checkout API">
+  `Define SLOs for our checkout API before we commit to an uptime SLA with customers`
+
+  Produces SLI definitions for availability, latency, and payment durability with Prometheus queries, 99.9% SLO targets justified by baseline data, and a burn-rate alert set ready to deploy.
+</Accordion>
+
+<Accordion title="Error budget policy for feature freeze decisions">
+  `Set up error budget policy for the checkout service so we stop debating whether to freeze feature work after each blip`
+
+  Produces a pre-agreed four-level policy (healthy → low → exhausted) signed off by both engineering and the product stakeholder — so the decision is made once calmly, not every time an incident fires.
+</Accordion>
+
+<Accordion title="Webhook delivery pipeline">
+  `Write the SLI/SLO document for our webhook delivery pipeline and the burn-rate alerts that should page on-call`
+
+  Covers delivery success rate and end-to-end latency SLIs with a 99.5% delivery SLO, error budget of ~216 minutes per 30 days, and a full multi-window alert set with Prometheus rules.
+</Accordion>
+
+## Key concepts
+
+### SLI, SLO, SLA — not the same thing
+
+| Term | What it is | Example |
+|:---|:---|:---|
+| **SLI** | A direct measurement of user-facing behavior | Proportion of checkout requests completing successfully |
+| **SLO** | The internal target for an SLI over a time window | 99.9% of checkout requests succeed, rolling 30 days |
+| **SLA** | An external, often contractual, promise — looser than the SLO | 99.5% monthly, with service credits for breach |
+
+Never set the SLA equal to the SLO. The gap is the buffer that lets you miss the internal target occasionally without breaching a customer contract and triggering financial penalties.
+
+### Why not 100%
+
+100% reliability eliminates the error budget entirely — every deploy, migration, or experiment becomes a potential SLO breach. The error budget (`1 − SLO`) is the amount of unreliability the business has explicitly decided is an acceptable cost of moving fast. The SLO document makes that trade-off deliberate and visible.
+
+### Multi-window, multi-burn-rate alerting
+
+A single "error rate > X%" alert either fires too late for fast, severe burns or too often for slow, minor ones. The skill implements the Google SRE Workbook three-tier model:
+
+| Alert tier | Burn rate | Long window | Short window | Budget consumed | Action |
+|:---|:---|:---|:---|:---|:---|
+| **Fast burn** | 14.4× | 1 hour | 5 min | 2% of monthly budget in 1 hr | Page immediately — critical |
+| **Moderate burn** | 6× | 6 hours | 30 min | 5% in 6 hours | Page on-call — urgent |
+| **Slow burn** | 1× | 3 days | 6 hours | 10% in 3 days | File ticket — investigate this week |
+
+### Error budget policy
+
+The policy is only useful if it is agreed upon before the budget is exhausted — not argued about mid-incident:
+
+| Budget remaining | Policy |
+|:---|:---|
+| > 50% | Ship normally |
+| 20–50% | Increase deploy review rigor; avoid risky changes without extra sign-off |
+| < 20% | Feature work slows; reliability fixes get priority |
+| 0% | Feature freeze until budget recovers, or explicit leadership sign-off to continue at accepted risk |
+
+### SLI implementation details
+
+An SLI definition is incomplete without an exact monitoring query. The document includes ready-to-deploy Prometheus and Datadog implementations for each SLI, plus explicit documentation of any measurement gap (e.g., "measured at the load balancer — a database-side failure that does not produce a 5xx at the LB is not captured").
+
+### Dependency-aware SLOs
+
+Services do not operate in isolation. The document models the dependency chain and calculates the composite SLO ceiling. If a service depends on a database with a 99.95% SLO and an external API with a 99.5% SLO (without graceful degradation), the composite SLO ceiling is 99.5% — regardless of how well the service itself performs.
+
+## Interview process
+
+The agent conducts a brief structured interview before drafting, loading prior `.engineering-docs/` files first to avoid re-asking known facts:
+
+<Steps>
+  <Step title="Context loading">
+    Reads existing documents (business-plan, technical-specification, system-architecture) to extract known uptime expectations, monitoring stack, and tech stack.
+  </Step>
+  <Step title="Reliability baseline (≤ 2–3 questions)">
+    Asks what historical performance has looked like, if known — even rough estimates like "we've had two outages in the last quarter" inform target-setting.
+  </Step>
+  <Step title="External commitments">
+    Checks whether an external SLA has already been promised to customers or partners, and what it says — this anchors the internal SLO target and the buffer calculation.
+  </Step>
+  <Step title="SLI selection">
+    Chooses 2–4 SLIs per critical user journey — typically availability, latency, and correctness/durability — rejecting infrastructure metrics that do not reflect user experience.
+  </Step>
+  <Step title="SLO target setting">
+    Sets the numeric target per SLI, justified by baseline data and business cost of missing it — not round numbers chosen for aesthetics.
+  </Step>
+  <Step title="Error budget and alerts">
+    Calculates the error budget and defines the three-tier burn-rate alert thresholds with deployable monitoring rules.
+  </Step>
+  <Step title="Policy and review cadence">
+    Defines the four-level error budget policy and the quarterly SLO review structure, with approval from both engineering and the business stakeholder who owns the roadmap.
+  </Step>
+</Steps>
+
+## Output structure
+
+The generated `.engineering-docs/19-slo-error-budget.md` mirrors the full template:
+
+```markdown title="19-slo-error-budget.md (structure)"
+# SLO & Error Budget Document
+
+## 1. Overview & Critical User Journeys
+## 2. Service Level Indicators (SLIs)
+  ### 2.1 SLI Implementation (Monitoring Queries)
+      — Prometheus PromQL + Datadog metric per SLI
+      — Implementation gaps documented
+## 3. Service Level Objectives (SLOs)
+      — Target, measurement window, evidence-based rationale
+## 4. Error Budget
+  ### 4.1 Budget Calculation
+  ### 4.2 Multi-Window, Multi-Burn-Rate Alerts
+## 5. Error Budget Policy
+  ### 5.1 Error Budget Dashboard
+  ### 5.2 Alerting Rule Implementation
+      — Prometheus YAML rules (deployable)
+      — Datadog monitor configuration
+## 6. SLO Breach Response Procedure
+  ### 6.1 Internal SLO Breach
+  ### 6.2 External SLA Breach
+## 7. External SLA (if applicable)
+  ### 7.1 SLA Buffer Sizing
+## 8. Dependency-Aware SLOs
+  ### 8.1 Service Dependency Map
+  ### 8.2 Dependency SLO Requirements & Composite Calculation
+## 9. Review and Re-Baselining
+```
+
+## Handoff
+
+<CardGroup cols={2}>
+  <Card title="Reads from" icon="arrow-down">
+    - `1-business-plan.md` — business cost of downtime, user expectations
+    - `5-technical-specification.md` — performance and reliability requirements
+    - `7-system-architecture.md` — components, dependencies, monitoring stack
+  </Card>
+  <Card title="Feeds into" icon="arrow-up">
+    - `17-technical-runbook.md` — alert thresholds and response procedures
+    - `16-deployment-plan.md` — deployment risk tolerance based on error budget
+    - `18-disaster-recovery.md` — RTO/RPO targets derived from SLOs
+    - Incident postmortems — severity classification and SLA impact measurement
+  </Card>
+</CardGroup>
+
+## Quality gate
+
+Before marking the document `final`, verify every item in this checklist:
+
+- [ ] Every SLI measures user-facing behavior, not infrastructure metrics
+- [ ] Every SLO target is justified by baseline data and business cost, not round numbers
+- [ ] The external SLA (if any) is looser than the internal SLO with an explicit buffer documented
+- [ ] Multi-window multi-burn-rate alert thresholds are defined for each SLO
+- [ ] The error budget policy is agreed upon by both engineering and the business stakeholder who owns the roadmap
+- [ ] Each SLI has an implementation query (Prometheus/Datadog) that is exact and executable
+- [ ] Error budget dashboard design is specified with components that answer "how much budget remains?" in under 5 seconds
+- [ ] Alerting rules are implemented in the monitoring system, not just documented as thresholds
+- [ ] SLO review meeting structure is defined with frequency, attendees, and agenda
+- [ ] SLO vs. SLA breach response procedure is documented with escalation path
+- [ ] Service dependencies are modeled and composite SLO is calculated
+- [ ] SLA buffer is sized deliberately based on measurement error, incident frequency, and business risk
+
+<Warning>
+**Common mistake:** Setting the SLO at 100% or equal to the external SLA. 100% eliminates error budget entirely; SLA = SLO means any internal miss becomes a contractual breach. Both are addressed by the skill — but flag them explicitly if seen in a prior document.
+</Warning>

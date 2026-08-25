@@ -1,0 +1,117 @@
+---
+title: "Install Engineering Docs in Gemini CLI"
+sidebarTitle: "Gemini CLI"
+description: "Install all 22 engineering skills in Gemini CLI using the official extensions command, the --gemini flag, a manual git clone, or the cross-platform setup script."
+---
+
+Engineering Docs ships a `gemini-extension.json` manifest at `integrations/plugins/gemini-extension.json`, making it a first-class Gemini CLI extension. The extension adds all 22 documentation skills to Gemini CLI, wires the `GEMINI.md` context file for session-level instructions, and sits in the standard global extensions directory at `~/.gemini/config/plugins/engineering-docs/`. There are four supported installation methods.
+
+## Method 1: Official extensions command (recommended)
+
+```bash terminal
+gemini extensions install https://github.com/fattain-naime/engineering-docs
+```
+
+Gemini CLI clones the repository, reads `gemini-extension.json`, and registers the plugin in your global config. The 22 skills become available in your next Gemini CLI session.
+
+## Method 2: Flag install via npx
+
+The `--gemini` flag (short alias `-g`) copies the full plugin tree to the global Gemini extensions directory without requiring `git`.
+
+<Steps>
+
+  <Step title="Run the installer">
+    ```bash terminal
+    npx engineering-docs --gemini
+    ```
+    Or with the short alias:
+    ```bash terminal
+    npx engineering-docs -g
+    ```
+  </Step>
+
+  <Step title="Confirm the install path">
+    Files are copied to:
+    ```
+    ~/.gemini/config/plugins/engineering-docs/
+    ```
+    The installer prints this path and confirms success.
+  </Step>
+
+  <Step title="Restart Gemini CLI">
+    Close your current session and start a new one. Gemini CLI scans `~/.gemini/config/plugins/` at startup and loads all registered extensions automatically.
+  </Step>
+
+</Steps>
+
+## Method 3: Manual git clone
+
+Use this method to stay on a specific branch or to inspect files before installing.
+
+```bash terminal
+git clone https://github.com/fattain-naime/engineering-docs.git \
+  ~/.gemini/config/plugins/engineering-docs
+```
+
+This places the full repository directly in the Gemini extensions directory. No additional configuration is needed — Gemini CLI discovers `gemini-extension.json` automatically.
+
+## Method 4: Setup script
+
+<CodeGroup>
+
+```bash Linux / macOS
+chmod +x scripts/setup.sh
+./scripts/setup.sh --gemini
+```
+
+```powershell Windows
+pwsh scripts\setup.ps1 -Target gemini
+```
+
+</CodeGroup>
+
+Both scripts implement the same safe-write rules as the Node.js installer — your existing `GEMINI.md` file is never overwritten.
+
+## Extension manifest
+
+The `gemini-extension.json` manifest that Gemini CLI reads when it loads the extension:
+
+```json integrations/plugins/gemini-extension.json
+{
+  "name": "engineering-docs",
+  "description": "22 engineering documentation skills covering the complete software lifecycle - from business concept through project planning, personas, architecture, API, database, security, testing, deployment, and operations.",
+  "version": "1.2.1",
+  "contextFileName": "GEMINI.md"
+}
+```
+
+The `contextFileName` field tells Gemini CLI to load `GEMINI.md` as session-level context whenever the extension is active. This file contains the full auto-trigger rule table — mapping natural-language phrases like _"document the architecture"_ or _"write an ADR"_ to the corresponding skill — and the behavioral standards that govern how the agent generates documents.
+
+## What gets installed
+
+The standard install copies the full plugin tree to `~/.gemini/config/plugins/engineering-docs/`:
+
+```
+engineering-docs/
+├── skills/         ← 22 SKILL.md files (core documentation skills)
+├── agents/         ← 4 custom agent definitions
+├── hooks/          ← SessionStart hook (hooks.json, check-progress.js)
+├── .mcp.json       ← MCP server configuration
+├── scripts/        ← Utility and validation scripts
+├── evals/          ← Eval test framework
+└── GEMINI.md       ← Gemini context file (safe-write)
+```
+
+<Note>
+  `GEMINI.md` is written with safe-write semantics: it is created only if it does not already exist at the destination. If you have a customized `GEMINI.md` in `~/.gemini/config/plugins/engineering-docs/`, the installer will print `skipped GEMINI.md (already exists — your customization preserved)` and leave your file untouched.
+</Note>
+
+## Verify the extension is loaded
+
+After installation, start a new Gemini CLI session and ask:
+
+```
+I want to build a new SaaS product. Where do I start?
+```
+
+If the extension loaded correctly, Gemini CLI will invoke the `using-engineering-docs` orchestrator skill and begin the structured documentation interview. If the skills are not triggering, check that `~/.gemini/config/plugins/engineering-docs/gemini-extension.json` exists and that the Gemini CLI version supports extensions.

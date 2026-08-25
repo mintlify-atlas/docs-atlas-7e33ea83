@@ -1,0 +1,348 @@
+---
+title: "Integrate Engineering Docs with MCP for programmatic document validation"
+sidebarTitle: "MCP Integration"
+description: "How the Engineering Docs MCP server exposes validate_document_set, check_consistency, and generate_index tools to any MCP-compatible client or CI pipeline."
+---
+
+Engineering Docs ships a minimal **MCP (Model Context Protocol) server** that exposes three programmatic tools for working with your `.engineering-docs/` folder: validating document completeness, checking cross-document consistency, and regenerating the master index. The server runs as a Node.js process communicating over stdio and is compatible with any MCP-capable client — including Claude Code, Cursor, and custom agent harnesses.
+
+The MCP integration is most valuable in multi-session projects (where you want to verify document health without running the full orchestrator), CI pipelines (where you want automated quality gates on documentation pull requests), and team workflows (where multiple engineers contribute to the same document set and need consistency enforced automatically).
+
+---
+
+## The `.mcp.json` configuration
+
+The plugin ships with a ready-to-use `.mcp.json` at the project root that registers the validation server with any MCP-compatible client:
+
+```json .mcp.json
+{
+  "mcpServers": {
+    "engineering-docs": {
+      "command": "node",
+      "args": ["scripts/validate.js"],
+      "description": "Engineering Docs validation server - provides tools for validating document completeness, checking cross-references, and generating indexes."
+    }
+  }
+}
+```
+
+The server command is `node scripts/validate.js`. It reads from `.engineering-docs/` in the **current working directory**, so it must be run from your project root.
+
+---
+
+## Configuring the MCP server in your agent
+
+<Tabs>
+  <Tab title="Claude Code">
+    Claude Code reads `.mcp.json` automatically when it's present in the project root. No additional configuration is required — the `engineering-docs` server will appear in your available MCP tools after the plugin is installed.
+
+    To verify the server is registered:
+
+    ```bash
+    claude mcp list
+    ```
+
+    You should see `engineering-docs` in the output with the `validate_document_set`, `check_consistency`, and `generate_index` tools listed.
+  </Tab>
+  <Tab title="Cursor / Windsurf">
+    Add the MCP server to your Cursor settings (`~/.cursor/mcp.json` or your workspace `.cursor/mcp.json`):
+
+    ```json ~/.cursor/mcp.json
+    {
+      "mcpServers": {
+        "engineering-docs": {
+          "command": "node",
+          "args": ["scripts/validate.js"]
+        }
+      }
+    }
+    ```
+
+    Restart Cursor after saving. The server will be available as a tool in the Composer and Chat panels.
+  </Tab>
+  <Tab title="Custom agent / CI">
+    Start the MCP server as a subprocess from your agent harness or CI script. The server communicates over stdio using JSON-RPC 2.0:
+
+    ```bash Start the MCP server
+    node scripts/validate.js
+    ```
+
+    Send tool calls as newline-delimited JSON:
+
+    ```json Tool call: validate_document_set
+    {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"validate_document_set","arguments":{}}}
+    ```
+
+    The server responds on stdout. See the JSON-RPC transport section below for the full message format.
+  </Tab>
+</Tabs>
+
+---
+
+## The three MCP tools
+
+### `validate_document_set`
+
+Checks that all **required documents** exist in `.engineering-docs/` and that each has valid YAML frontmatter.
+
+**Required documents checked:**
+
+| Slug | Skill |
+|:-----|:------|
+| `business-plan` | `business-concept` |
+| `project-plan` | `project-plan` |
+| `user-personas` | `user-personas-behavior` |
+| `technical-specification` | `technical-specification` |
+| `system-architecture` | `system-architecture-document` |
+| `implementation-plan` | `implementation-plan` |
+| `test-strategy` | `test-strategy-document` |
+| `deployment-plan` | `deployment-plan` |
+
+**Frontmatter fields validated on every document:**
+
+```yaml Required frontmatter fields
+title:          # Document title
+skill:          # Source skill name (e.g., system-architecture-document)
+status:         # draft | final | superseded
+owner_reviewed: # true | false
+last_updated:   # date (YYYY-MM-DD)
+depends_on:     # [list of filenames this document depends on]
+```
+
+**Example response:**
+
+```json validate_document_set response
+{
+  "ok": false,
+  "required": [
+    { "slug": "business-plan", "file": "1-business-plan.md", "status": "final", "issues": [] },
+    { "slug": "deployment-plan", "status": "missing" }
+  ],
+  "conditional": [
+    { "slug": "security-threat-model", "file": "11-security-threat-model.md", "status": "draft", "issues": [] }
+  ],
+  "errors": ["Required document missing: deployment-plan"]
+}
+```
+
+---
+
+### `check_consistency`
+
+Verifies cross-document consistency across three dimensions: dependency references, entity names, and terminology.
+
+**What it checks:**
+
+1. **Dependency references** — Every filename listed in a document's `depends_on` frontmatter field must actually exist in `.engineering-docs/`. Missing dependencies are reported as `missing_dependency` issues.
+
+2. **Entity name overlap** — Using a heuristic of capitalized multi-word phrases, the tool detects when a document's dependencies define entities that aren't referenced in the dependent document. A large gap (more than 3 unreferenced entities) is flagged as an `entity_gap` issue — informational, not always an error.
+
+3. **Terminology consistency** — Common terms that appear in multiple variant spellings across documents are flagged. The tool checks variants like:
+
+   | Canonical | Variant forms caught |
+   |:----------|:--------------------|
+   | `API` | `api`, `Api` |
+   | `JavaScript` | `Javascript`, `javascript` |
+   | `TypeScript` | `Typescript`, `typescript` |
+   | `PostgreSQL` | `Postgres`, `postgres` |
+   | `Kubernetes` | `kubernetes`, `K8s`, `k8s` |
+
+**Example response:**
+
+```json check_consistency response
+{
+  "ok": true,
+  "files_checked": 12,
+  "issues": [
+    {
+      "type": "terminology_inconsistency",
+      "detail": "Multiple forms found: PostgreSQL, Postgres — consider standardizing"
+    },
+    {
+      "type": "entity_gap",
+      "file": "9-api-design.md",
+      "detail": "5 entities from 8-database-design.md not referenced (may be intentional): Payment Method, Subscription Plan..."
+    }
+  ]
+}
+```
+
+---
+
+### `generate_index`
+
+Regenerates the `index.md` master index from all documents currently in `.engineering-docs/`. Useful after manual edits to the document set, after a brownfield run that appended new documents, or to restore an accidentally deleted index.
+
+**What it produces:**
+
+```markdown Generated index.md
+# Master Project Index
+
+Generated: 2025-01-15
+
+## Document Set
+
+| # | Document | Status | Reviewed | Last Updated |
+|:--|:---------|:-------|:---------|:-------------|
+| 1 | [Business Plan](1-business-plan.md) | final | true | 2025-01-10 |
+| 2 | [Project Plan](2-project-plan.md) | final | true | 2025-01-10 |
+| ... | ... | ... | ... | ... |
+
+## Reading Order
+
+Documents should be read in the order listed above, as each builds on prior context.
+
+## Status Summary
+
+- **Final:** 10
+- **Draft:** 2
+- **Total:** 12
+```
+
+**Example response:**
+
+```json generate_index response
+{
+  "ok": true,
+  "index": "# Master Project Index\n\nGenerated: 2025-01-15\n...",
+  "stats": {
+    "total": 12,
+    "draft": 2,
+    "final": 10
+  }
+}
+```
+
+<Note>
+  `generate_index` produces the index content as a string in the response — it does not write to disk automatically. Your agent or CI script is responsible for writing the returned `index` value to `.engineering-docs/index.md`.
+</Note>
+
+---
+
+## The hooks system
+
+Engineering Docs includes a **SessionStart hook** that runs `check-progress.js` automatically at the start of every agent session. This surfaces any in-progress documentation so you can pick up where you left off — without having to remember which documents were still in draft.
+
+### `hooks/hooks.json`
+
+```json hooks/hooks.json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/check-progress.js",
+            "async": false
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The hook fires on session **startup**, **clear** (context cleared), and **compact** (context compacted) — the three moments when an agent might otherwise lose track of in-progress work.
+
+### What `check-progress.js` does
+
+The script checks for a `.engineering-docs/` folder in the current working directory. If it finds one, it reads `index.md` and reports any documents with `draft` or `in-progress` status:
+
+```text Example hook output at session start
+[engineering-docs] Documentation in progress for this project:
+  - 12 document(s) in the index
+  - 2 item(s) still in draft or in-progress status:
+    > 11-security-threat-model.md | draft | false | 2025-01-14
+    > 14-implementation-plan.md | in-progress | false | 2025-01-14
+
+  To continue, invoke the engineering-docs orchestrator — it will
+  read the existing index and resume from where you left off.
+```
+
+If no `.engineering-docs/` folder exists, or if all documents are final, the script exits silently — no noise when there's nothing to report.
+
+---
+
+## When MCP is most useful
+
+<CardGroup cols={2}>
+  <Card title="CI pipelines" icon="git-branch">
+    Add `validate_document_set` and `check_consistency` as steps in your documentation PR pipeline to catch missing required docs and terminology drift before merge.
+  </Card>
+  <Card title="Automated quality gates" icon="shield-check">
+    Block a sprint from starting unless all required documents are `status: final` and `owner_reviewed: true`. The `validate_document_set` response `ok` field is a clean boolean gate.
+  </Card>
+  <Card title="Multi-session projects" icon="layers">
+    Large projects span many sessions. The MCP tools let you verify document health at the start of each new session without re-running the full orchestrator pipeline.
+  </Card>
+  <Card title="Team documentation workflows" icon="users">
+    When multiple engineers contribute to the same `.engineering-docs/` folder, `check_consistency` can be run as a pre-commit hook to catch entity name and terminology drift introduced by different authors.
+  </Card>
+</CardGroup>
+
+---
+
+## Example CI workflow
+
+```yaml ci-docs-check.yml
+name: Documentation Quality Gate
+
+on:
+  pull_request:
+    paths:
+      - '.engineering-docs/**'
+
+jobs:
+  validate-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate document set
+        run: |
+          echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"validate_document_set","arguments":{}}}' \
+            | node scripts/validate.js \
+            | node -e "
+                const chunks = [];
+                process.stdin.on('data', c => chunks.push(c));
+                process.stdin.on('end', () => {
+                  const res = JSON.parse(chunks.join(''));
+                  const result = JSON.parse(res.result.content[0].text);
+                  if (!result.ok) {
+                    console.error('Document validation failed:', result.errors);
+                    process.exit(1);
+                  }
+                  console.log('All required documents present and valid.');
+                });
+              "
+
+      - name: Check cross-document consistency
+        run: |
+          echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"check_consistency","arguments":{}}}' \
+            | node scripts/validate.js \
+            | node -e "
+                const chunks = [];
+                process.stdin.on('data', c => chunks.push(c));
+                process.stdin.on('end', () => {
+                  const res = JSON.parse(chunks.join(''));
+                  const result = JSON.parse(res.result.content[0].text);
+                  const errors = (result.issues || []).filter(i => i.type !== 'entity_gap');
+                  if (errors.length > 0) {
+                    console.error('Consistency issues found:', errors);
+                    process.exit(1);
+                  }
+                  console.log('Consistency check passed. Files checked:', result.files_checked);
+                });
+              "
+```
+
+<Info>
+  The CI example above treats `entity_gap` issues as informational (filtered out from the failure check) because not every entity in a dependency needs to be explicitly referenced in a dependent document — the gap heuristic is a signal, not a strict requirement.
+</Info>

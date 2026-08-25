@@ -1,0 +1,226 @@
+---
+title: "database-design-document skill: ERD, schema, indexing, and migration plan"
+sidebarTitle: "Database Design"
+description: "Generate a production database design: Mermaid ERD, full DDL for MySQL/PostgreSQL, data dictionary, indexing strategy, normalization decisions, and tested migration plan with rollbacks."
+---
+
+The **database-design-document** skill produces a comprehensive database design document covering every table, column, relationship, index, and constraint required to correctly and efficiently store a domain's data. Poor database design is among the most expensive technical debt in software — changing a column on a 50-million-row table means a 4-hour maintenance window, while a 2-hour design session upfront prevents years of painful migrations. The skill applies 3NF normalization, referential integrity enforcement, performance-oriented indexing, and explicit migration plans.
+
+<Info>
+| Property | Value |
+| :--- | :--- |
+| **Type** | Workflow |
+| **Estimated time** | 3–6 hours |
+| **Standards** | 3NF normalization, DECIMAL for money, DATETIME(6) precision, utf8mb4 character set |
+| **Output file** | `.engineering-docs/8-database-design-document.md` |
+| **Conditional?** | Always core — invoke for any system with persistent data |
+</Info>
+
+## Best for
+
+- Designing the database schema for a new system or major domain
+- Documenting an existing schema that lacks formal specification
+- Planning a schema migration or major refactoring
+- Onboarding engineers to the data model of a complex system
+
+## What it produces
+
+The generated document covers:
+
+1. **Overview** — domain purpose, design decisions summary (PK strategy, soft delete, money types, charset)
+2. **Entity-Relationship Diagram** — Mermaid ERD for every table with columns and cardinality labels
+3. **Table definitions** — full DDL for both MySQL 8.x and PostgreSQL 16, including column types, `NOT NULL` enforcement, `CHECK` constraints, foreign keys, and all indexes
+4. **Data dictionary** — plain-language description of every non-obvious column, nullable meaning, and lifecycle states
+5. **Indexing strategy** — hot query pattern table, index-per-query coverage analysis, composite index ordering, FK index checklist
+6. **Normalization decisions** — intentional denormalizations documented with rationale
+7. **Constraints and data integrity** — FK cascade behavior table, application-layer rules
+8. **Sensitive data classification** — encryption method, hashing strategy, retention policy per column
+9. **Connection pooling** — `pool_size`, `max_connections`, `pool_timeout`, `pool_recycle`, leak detection
+10. **Database views** — read-only query encapsulation for dashboards and admin UIs
+11. **Multi-tenant data isolation** — pattern (shared schema, separate schema, separate database) and `tenant_id` enforcement
+12. **Backup strategy** — full, incremental/WAL, schema-only, retention, and restore test schedule
+13. **Migration plan** — migration files table, risk analysis (lock contention, type changes), rollback scripts
+14. **Alternatives considered**
+
+## How to invoke it
+
+<CodeGroup>
+```bash Claude Code
+claude "Design the database schema for a multi-tenant SaaS billing system" --skill database-design-document
+```
+
+```bash Gemini CLI
+gemini "Document the complete database design for our payment gateway" --skill database-design-document
+```
+
+```bash Generic (npx)
+npx engineering-docs database-design-document "I need an ERD and schema spec for a new inventory management module"
+```
+</CodeGroup>
+
+<Tip>
+Supply known query patterns (e.g., "we always filter payments by merchant and status, then sort by created_at desc"), cardinality expectations ("millions of transactions, thousands of merchants"), and any existing tables that must integrate.
+</Tip>
+
+## Example scenarios
+
+<CardGroup cols={2}>
+  <Card title="Multi-tenant SaaS billing" icon="receipt">
+    "Design the database schema for a multi-tenant SaaS billing system — tenants, subscription plans, invoices, line items, and payment records."
+  </Card>
+  <Card title="Payment gateway" icon="credit-card">
+    "Document the complete database design for our payment gateway — merchants, payment links, transactions, webhook delivery logs."
+  </Card>
+  <Card title="Inventory management" icon="boxes-stacked">
+    "ERD and schema spec for a new inventory management module — products, SKUs, warehouses, stock levels, and movement history."
+  </Card>
+  <Card title="Legacy documentation" icon="file-magnifying-glass">
+    "Document the existing schema for our merchant management system — we have the tables but no formal spec."
+  </Card>
+</CardGroup>
+
+## Key concepts
+
+<Accordion title="Normalization — 3NF minimum, denormalize intentionally">
+- **1NF:** Atomic values, no repeating groups
+- **2NF:** No partial dependencies on a composite key
+- **3NF:** No transitive dependencies — non-key columns depend only on the primary key
+
+Design to 3NF minimum. When denormalizing for performance, document it explicitly in the Normalization Decisions section with a clear justification. Future maintainers must never be left guessing why a cached aggregate column exists.
+</Accordion>
+
+<Accordion title="Money types — never FLOAT">
+```sql
+-- Correct: exact decimal arithmetic
+amount  DECIMAL(19, 4)  NOT NULL DEFAULT '0.0000'
+
+-- Wrong: floating-point rounding errors compound over millions of rows
+amount  FLOAT  -- never use this for financial data
+```
+
+FLOAT introduces rounding errors that compound over time. The skill enforces `DECIMAL(19,4)` (or `NUMERIC(19,4)` in PostgreSQL) for all monetary values.
+</Accordion>
+
+<Accordion title="Indexing principles">
+Rules the skill applies to every table:
+- Every foreign key column must have an index — without one, JOINs degrade to full table scans
+- Columns used in `WHERE`, `JOIN ON`, and `ORDER BY` clauses of hot queries must be indexed
+- Composite indexes: most selective column first
+- Never index low-cardinality columns (e.g., a boolean flag) in isolation
+- Use generated stored columns for frequently queried JSON-extracted values
+</Accordion>
+
+<Accordion title="Migration plan — every migration needs a rollback">
+Every migration file in the plan includes:
+- A forward script (CREATE, ALTER, CREATE INDEX)
+- A tested rollback script (`DROP TABLE`, `ALTER TABLE DROP COLUMN`, `DROP INDEX`)
+- A risk assessment: which tables, estimated row count, lock contention strategy (e.g., `pt-online-schema-change` or `gh-ost` for large tables)
+- Destructive migrations (type changes, column drops) are validated on a staging copy before production
+</Accordion>
+
+<Accordion title="Partitioning strategy for large tables">
+For tables expected to grow beyond millions of rows:
+- **Range partitioning** — by `created_at`; best for time-series data and audit logs; enables archival by dropping old partitions
+- **Hash partitioning** — by `tenant_id` or `user_id`; best for multi-tenant systems needing even distribution
+- **List partitioning** — by discrete category (e.g., `region`, `status`)
+
+The document records: partition key, partition strategy, pruning behavior, and maintenance plan.
+</Accordion>
+
+<Accordion title="Multi-tenant isolation patterns">
+| Pattern | Description | Pros | Cons |
+| :--- | :--- | :--- | :--- |
+| Shared database, shared schema | All tenants filtered by `tenant_id` | Simple, cost-effective | Noisy-neighbor risk; data leak if filter is missed |
+| Shared database, separate schema | Each tenant has their own schema | Better isolation, per-tenant backup | Harder to manage at scale |
+| Separate database per tenant | Each tenant has their own DB instance | Strongest isolation | Highest cost and operational complexity |
+
+For the shared-schema pattern, the skill enforces `tenant_id` filtering at the repository layer — never application-only filtering.
+</Accordion>
+
+## Interview process
+
+<Steps>
+  <Step title="Phase 1: Socratic clarification (mandatory)">
+    Reads all prior `.engineering-docs/` files first. Up to 3 questions: access patterns (most frequent read/write operations) and data scaling (thousands vs. millions of rows per table). Answers feed directly into index design and partitioning decisions.
+  </Step>
+  <Step title="Phase 2: Entity identification (40–60 min)">
+    Identify all domain entities and their attributes. Establish primary key strategy and data type choices.
+  </Step>
+  <Step title="Phase 3: Relationship mapping (40–60 min)">
+    Define relationships, cardinality, and ownership. Produce the Mermaid ERD.
+  </Step>
+  <Step title="Phase 4: Table definitions (1–2 hrs)">
+    Write complete DDL for each table — column types, NOT NULL constraints, CHECK constraints, foreign keys, and indexes for both MySQL 8.x and PostgreSQL 16.
+  </Step>
+  <Step title="Phase 5: Data dictionary (40–60 min)">
+    Document every table and non-obvious column in plain language, including nullable meaning and lifecycle state descriptions.
+  </Step>
+  <Step title="Phase 6: Query patterns and index validation (40–60 min)">
+    Identify the 5–10 hottest queries and verify every one has a covering index. Document composite index column ordering rationale.
+  </Step>
+  <Step title="Phase 7: Migration plan (40–60 min)">
+    Produce the migration files table, risk assessment, and rollback scripts. Flag any ALTER operations on large tables.
+  </Step>
+  <Step title="Phase 8: Revision (after user review)">
+    Apply feedback, cascading changes through ERD, DDL, data dictionary, and migration scripts. Re-run consistency checks. Update `last_updated`.
+  </Step>
+</Steps>
+
+## Output structure
+
+The generated `.engineering-docs/8-database-design-document.md` follows this structure:
+
+```
+1.  Overview (domain purpose + design decisions summary)
+2.  Entity-Relationship Diagram (Mermaid ERD + relationship summary table)
+3.  Table Definitions (full MySQL + PostgreSQL DDL per table)
+4.  Data Dictionary (column-level plain-language descriptions)
+5.  Indexing Strategy (hot query table + index review checklist)
+6.  Normalization Decisions (denormalization table with rationale)
+7.  Constraints and Data Integrity (FK cascade table + app-layer rules)
+8.  Sensitive Data Classification (per column: classification, storage, retention)
+9.  Connection Pooling (pool_size, max_connections, timeout, recycle, leak detection)
+10. Database Views (DDL + security + performance notes)
+11. Multi-Tenant Data Isolation (pattern + tenant_id enforcement strategy)
+12. Backup Strategy (full, incremental/WAL, schema-only, retention, restore tests)
+13. Migration Plan (files table, risk analysis, rollback scripts)
+14. Open Questions
+15. Alternatives Considered
+```
+
+**Target length:** 8–15 pages excluding appendices.
+
+## Handoff
+
+<CardGroup cols={2}>
+  <Card title="Reads from" icon="arrow-down">
+    - `1-business-plan.md` — problem domain, users, constraints
+    - `3-user-personas.md` — target users, usage patterns
+    - `4-technical-specification.md` — functional and non-functional requirements
+    - `7-system-architecture.md` — technology decisions, hosting constraints
+  </Card>
+  <Card title="Feeds into" icon="arrow-up">
+    - `9-api-design-document.md` — data model that API resources map to
+    - `11-admin-access-control-specification.md` — entities that permissions govern
+    - `14-technical-blueprint.md` — schema referenced in feature designs
+    - `15-implementation-plan.md` — schema as Phase 0/1 foundation
+  </Card>
+</CardGroup>
+
+## Quality gate
+
+- [ ] Every table has a primary key, all foreign keys, `NOT NULL` constraints, and appropriate data types defined
+- [ ] Every foreign key column has a corresponding index documented in the Indexing Strategy section
+- [ ] The ERD matches the table definitions — every entity in the diagram appears in Section 3 and vice versa
+- [ ] All intentional denormalizations are in the Normalization Decisions table with written justification
+- [ ] Every migration has a tested rollback script and the Migration Risks table identifies lock contention and type-change risks
+
+<Warning>
+**Common gotchas:**
+
+- Using `FLOAT` for financial amounts — floating-point rounding errors compound over millions of rows
+- Omitting indexes on foreign key columns — every FK must have an index or JOINs degrade to full table scans on large data
+- Leaving columns `NULL` when they should be `NOT NULL` — any migration script or direct DB access can then insert invalid data
+- Over-normalizing without documenting it — excessive JOINs hurt read performance; denormalize intentionally with a written justification
+- Writing migrations without tested rollback scripts — destructive schema changes with no rollback are a production incident waiting to happen
+</Warning>

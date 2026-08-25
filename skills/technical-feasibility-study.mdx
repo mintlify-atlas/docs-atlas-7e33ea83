@@ -1,0 +1,266 @@
+---
+title: "technical-feasibility-study skill: go/no-go recommendation with evidence"
+sidebarTitle: "Feasibility Study"
+description: "Assess whether a proposed technical approach is viable across four dimensions — technical, resource, operational, and risk — and produce a go/no-go recommendation backed by evidence."
+---
+
+The `technical-feasibility-study` skill prevents the most expensive engineering failure mode: committing significant resources to a direction that was never viable. Before any design or implementation begins, it rigorously evaluates a proposed technical concept across four dimensions and delivers a structured, evidence-backed recommendation. This is a **conditional skill** — invoke it only when you are uncertain whether a proposed technical approach will work given your current stack, team, timeline, or constraints.
+
+<Info>
+  **At a glance**
+
+  | Field | Value |
+  | :--- | :--- |
+  | **Type** | Workflow |
+  | **Estimated time** | 4–8 hours |
+  | **Output file** | `technical-feasibility-study.md` |
+  | **Argument hint** | `[concept or proposed solution]` |
+  | **Invocation condition** | Only when technical viability is genuinely uncertain |
+</Info>
+
+## When to include vs skip
+
+<Tabs>
+  <Tab title="Include this skill">
+    Run a feasibility study when **you genuinely don't know** if the approach will work:
+
+    - Evaluating a new technology, framework, or architectural pattern your team has never used in production
+    - Assessing whether a third-party integration (API, library, SaaS) is viable given your stack
+    - Answering "can we build this in the time we have?" before making a commitment
+    - Deciding between competing implementation approaches with meaningfully different risk profiles
+    - Proposing a significant architecture change (e.g., monolith to microservices migration)
+
+    **Trigger question:** *If this approach turns out to be wrong after 3 months of implementation, what is the cost?* If the cost is high, run a feasibility study first.
+  </Tab>
+  <Tab title="Skip this skill">
+    Do **not** run a feasibility study for:
+
+    - Proven technologies your team has successfully shipped to production
+    - Implementation details within a known, validated tech stack
+    - Decisions that are easy and cheap to reverse
+    - Business ROI analysis — this skill focuses on technical viability only
+    - Routine feature work where the question is "how to build it", not "can we build it"
+
+    If the answer to "is this technically feasible?" is obviously yes based on your team's experience, proceed directly to `technical-specification` or `system-architecture-document`.
+  </Tab>
+</Tabs>
+
+## Best for
+
+<CardGroup cols={2}>
+  <Card title="New technology evaluation" icon="flask">
+    Evaluating a new technology, framework, or architectural pattern before adoption — with evidence, not opinion.
+  </Card>
+  <Card title="Third-party integration" icon="plug">
+    Assessing whether a third-party API, library, or SaaS integration is viable given your team's stack and constraints.
+  </Card>
+  <Card title="Timeline commitment" icon="calendar-check">
+    Answering "can we build this in the time we have?" before making a commitment to a roadmap or stakeholder.
+  </Card>
+  <Card title="Competing approaches" icon="code-compare">
+    Deciding between two or more competing implementation approaches with benchmarked, structured comparison.
+  </Card>
+</CardGroup>
+
+## What it produces
+
+The skill generates a 5–10 page structured assessment covering:
+
+- **Proposal description** — objective statement of what is being evaluated and the evaluation criteria for "feasible"
+- **Technical assessment** — technology maturity, integration complexity, PoC results, technical blockers, and benchmarking data
+- **Resource assessment** — skills gap analysis, realistic timeline estimate, infrastructure and cost delta
+- **Operational assessment** — monitoring, deployment pipeline, incident response readiness, and migration strategy
+- **Risk assessment** — risk matrix with probability, impact, severity, and mitigation for each identified risk
+- **Fallback options** — at least one viable alternative path with trigger conditions
+- **Alternatives considered** — at least two alternatives with evidence-based rejection rationale
+- **TCO projection** — Year 1 and Year 3 total cost including infrastructure, licensing, personnel, and migration
+- **Vendor lock-in assessment** — proprietary API dependency, data portability, contract risk, and switching cost
+- **Decision matrix** — weighted scoring across all four feasibility dimensions
+- **Recommendation** — `Go`, `Conditional Go`, or `No Go` with a summary of evidence and, for Conditional Go, named conditions with owners and deadlines
+
+## How to invoke it
+
+<CodeGroup>
+```bash Claude Code
+claude "Assess the feasibility of building a real-time fraud detection engine using stream processing for our payment gateway, given our team of 3 PHP engineers and a 4-month delivery window."
+```
+
+```bash Gemini CLI
+gemini "Assess the feasibility of building a real-time fraud detection engine using stream processing for our payment gateway, given our team of 3 PHP engineers and a 4-month delivery window."
+```
+
+```bash Generic (any agent)
+technical-feasibility-study [concept or proposed solution]
+```
+</CodeGroup>
+
+## Example scenarios
+
+- *"Is it feasible to migrate our monolith to microservices within 6 months?"*
+- *"Evaluate the technical feasibility of adding real-time collaborative editing to our platform"*
+- *"Can we integrate with the XYZ payment processor given our current PHP stack?"*
+
+## Key concepts
+
+### The four feasibility dimensions
+
+Every assessment evaluates four dimensions independently, each with its own `Feasible` / `Conditionally Feasible` / `Not Feasible` verdict:
+
+<Accordion title="1. Technical Feasibility">
+  Can this be built with available or acquirable technology? Does the proposed solution have proven precedent at similar scale?
+
+  Evaluated through: technology maturity rating (Experimental → Mature), production adoption evidence, integration complexity per integration point, PoC results, and a benchmarking table comparing approaches on throughput, latency (p50/p95/p99), and resource usage.
+</Accordion>
+
+<Accordion title="2. Resource Feasibility">
+  Do we have — or can we acquire — the engineering skills, infrastructure, and budget required?
+
+  Evaluated through: skills gap matrix (required skill vs current team capability vs resolution path), realistic timeline table (estimated effort vs available capacity), and infrastructure/cost delta table.
+</Accordion>
+
+<Accordion title="3. Operational Feasibility">
+  Once built, can we operate, monitor, and maintain this system? Teams often assess "we can build it" but overlook "can we run it at 3 AM."
+
+  Evaluated through: operational requirements table (monitoring, deployment pipeline, incident response, runbook coverage) and migration/transition plan with rollback path.
+</Accordion>
+
+<Accordion title="4. Risk Feasibility">
+  What are the critical failure modes? What is the blast radius of a failed implementation?
+
+  Evaluated through: risk matrix with probability × impact = severity, plus at least one documented fallback option with viability rating, switching cost, and trigger condition.
+</Accordion>
+
+### Recommendation levels
+
+| Recommendation | Meaning |
+| :--- | :--- |
+| **Go** | Proceed with design and implementation. Evidence strongly supports viability across all four dimensions. |
+| **Conditional Go** | Proceed only if stated conditions are met before design begins (e.g., hire specialist, resolve dependency, pass PoC). Each condition has a named owner and deadline. |
+| **No Go** | The approach is not viable under current constraints. An evidence-backed alternative is recommended. |
+
+<Warning>
+  A recommendation without evidence is just an opinion. Every Go/No-Go verdict must cite specific findings from the assessment sections — a PoC result, a skills gap, missing infrastructure. "It feels risky" is not an analysis.
+</Warning>
+
+### PoC specification
+
+When a technology is unfamiliar or risk is high, the skill recommends (or specifies) a **time-boxed Proof of Concept** before committing:
+
+| Field | Description |
+| :--- | :--- |
+| **Objective** | The specific question the PoC answers (not "explore the technology") |
+| **Scope in / out** | What is tested and what is explicitly excluded |
+| **Time-box** | Maximum wall-clock time (typically 1–2 weeks) |
+| **Success criteria** | Pass/fail conditions defined *before* the PoC starts — never adjusted retroactively |
+| **Output artifact** | Benchmark numbers, working prototype, or integration demo |
+| **Decision if pass** | Proceed to design |
+| **Decision if fail** | Named fallback path activated |
+
+### Benchmarking methodology
+
+When comparing technologies, the skill applies a structured approach: defines comparable criteria, controls variables (same hardware, same dataset, same load pattern), uses real workloads instead of synthetic benchmarks, documents exact setup and versions for reproducibility, and reports p95/p99 alongside averages — never just point estimates.
+
+### Confirmation bias mitigation
+
+Feasibility studies are particularly vulnerable to seeking evidence that confirms a desired outcome. The skill mitigates this by:
+
+- Seeking disconfirming evidence first — reasons it won't work before reasons it will
+- Running a **pre-mortem**: imagining the project has failed and working backward to surface risks that optimistic analysis misses
+- Documenting unknowns explicitly — unknowns are more dangerous than known risks
+- Treating the person who proposed the approach as one voice, not the sole evaluator
+
+### Decision matrix
+
+The four feasibility dimensions are scored 1–5 (1 = major concern, 5 = fully feasible) and weighted by project priorities to produce a total score. The matrix makes reasoning transparent — if the total says Go but the assessor's judgment says No Go, the discrepancy is investigated rather than overridden.
+
+## Interview process
+
+<Steps>
+  <Step title="Context loading">
+    Reads all existing `.engineering-docs/` files — extracts timeline constraints, team size, and current stack from `business-plan` and `project-plan` without re-asking.
+  </Step>
+  <Step title="Socratic clarification (max 2–3 questions)">
+    Asks: (1) What is the most risky or uncertain part of this proposal? (2) What alternative approaches have you briefly considered? Questions are tool calls with multiple-choice options.
+  </Step>
+  <Step title="Define the proposition (40–60 min)">
+    States clearly what is being evaluated, why, and what criteria must be true for a "Go" recommendation.
+  </Step>
+  <Step title="Technical assessment (90 min)">
+    Evaluates technology maturity, integration complexity, PoC results (or recommends one), technical blockers, and benchmark data.
+  </Step>
+  <Step title="Resource and timeline assessment (60 min)">
+    Maps required skills against team capability, constructs a realistic timeline, and calculates capacity delta.
+  </Step>
+  <Step title="Risk analysis (60 min)">
+    Identifies critical risks with probability/impact ratings, documents fallback options and trigger conditions.
+  </Step>
+  <Step title="Recommendation (30–45 min)">
+    Delivers Go / Conditional Go / No Go backed by the decision matrix and evidence summary from each dimension.
+  </Step>
+</Steps>
+
+## Output structure
+
+<Accordion title="Executive Summary">
+  2–3 sentences: what is evaluated, the recommendation, and the single most important supporting evidence. Written last.
+</Accordion>
+
+<Accordion title="Proposal Description">
+  Objective description of what is proposed, why it is being considered, and the explicit evaluation criteria for "feasible."
+</Accordion>
+
+<Accordion title="Technical Feasibility Assessment">
+  Technology maturity table, integration complexity per point, PoC specification and results, technical blockers, and benchmark comparison table.
+</Accordion>
+
+<Accordion title="Resource Feasibility Assessment">
+  Skills gap matrix, timeline table with capacity delta calculation, infrastructure and cost delta.
+</Accordion>
+
+<Accordion title="Operational Feasibility Assessment">
+  Operational requirements coverage table, migration and rollback plan.
+</Accordion>
+
+<Accordion title="Risk Assessment">
+  Risk matrix, fallback options with viability, switching cost, and trigger conditions.
+</Accordion>
+
+<Accordion title="Alternatives Considered">
+  At least two alternatives with why each was considered and evidence-based rejection rationale. This prevents future engineers from re-investigating already-evaluated paths.
+</Accordion>
+
+<Accordion title="Total Cost of Ownership Projection">
+  Year 1 and Year 3 cost breakdown: infrastructure, licensing, personnel (skills gap), operational overhead, migration. Compared against status quo and at least one alternative.
+</Accordion>
+
+<Accordion title="Vendor Lock-in Assessment">
+  Proprietary API dependency, data portability, contract/pricing risk, ecosystem dependency, and switching cost — each rated Low/Medium/High.
+</Accordion>
+
+<Accordion title="Decision Matrix">
+  Weighted scores across all four dimensions. Total score alongside qualitative recommendation.
+</Accordion>
+
+<Accordion title="Recommendation">
+  Go / Conditional Go / No Go verdict with evidence summary table. For Conditional Go: each condition with named owner and deadline. Recommended next steps with owners and dates.
+</Accordion>
+
+## Handoff
+
+**Reads from:**
+- `1-business-plan.md` — problem definition, constraints, existing systems
+- `2-project-plan.md` — timeline constraints, team capacity, budget
+
+**Feeds into:**
+- `technical-specification` — feasibility verdict, conditional requirements, risk findings shape what is specified
+- `system-architecture-document` — technology constraints, integration feasibility, and risk mitigations inform architectural decisions
+
+## Quality gate
+
+Before marking the document `final`, verify:
+
+- [ ] All four feasibility dimensions (technical, resource, operational, risk) have explicit verdicts with supporting evidence
+- [ ] The recommendation (Go / Conditional Go / No Go) is directly supported by the assessment findings and not contradicted by any dimension
+- [ ] At least two alternatives are documented with evidence-based rejection rationale
+- [ ] Every Conditional Go condition has a named owner and a deadline assigned
+- [ ] A fallback option is defined with a clear trigger condition for when to abandon the current approach

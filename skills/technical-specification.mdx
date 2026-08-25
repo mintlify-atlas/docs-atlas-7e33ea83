@@ -1,0 +1,302 @@
+---
+title: "technical-specification skill: ISO/IEC/IEEE 29148 requirements with EARS syntax"
+sidebarTitle: "Tech Specification"
+description: "Generate a complete SRS/TSD with SMART requirements in EARS syntax, FR/NFR coverage, traceability matrix, and acceptance criteria aligned to ISO/IEC/IEEE 29148."
+---
+
+The `technical-specification` skill produces a complete Software Requirements Specification (SRS) or Technical Specification Document (TSD) — the contract between business stakeholders and the engineering team. It transforms stakeholder intent into unambiguous, verifiable engineering requirements before a single line of architecture or code is written, preventing the most expensive class of software defect: building the wrong thing correctly.
+
+<Info>
+  **At a glance**
+
+  | Field | Value |
+  | :--- | :--- |
+  | **Type** | Workflow |
+  | **Estimated time** | 6–12 hours |
+  | **Standard** | ISO/IEC/IEEE 29148:2018 |
+  | **Output file** | `4-technical-specification.md` |
+  | **Argument hint** | `[system or feature name]` |
+</Info>
+
+## Best for
+
+<CardGroup cols={2}>
+  <Card title="New products and services" icon="rocket">
+    Starting a new product, service, or major subsystem from scratch where requirements must be captured before design begins.
+  </Card>
+  <Card title="Formalizing requirements" icon="file-contract">
+    Formalizing requirements before architecture or design begins, establishing a baseline all teams agree on.
+  </Card>
+  <Card title="Test and acceptance baseline" icon="circle-check">
+    Creating a baseline for a test plan and acceptance criteria linked to every stated requirement.
+  </Card>
+  <Card title="Regulatory traceability" icon="shield-halved">
+    Compliance contexts requiring traceability from stakeholder need → requirement → test → implementation.
+  </Card>
+</CardGroup>
+
+## What it produces
+
+The skill generates a structured TSD covering all 22 sections of the template — from executive summary through sign-off. The output is a single Markdown document targeting **10–20 pages** (excluding appendices). Key artifacts inside the document include:
+
+- **Functional requirements (FR-XXX)** — each with EARS syntax, a unique ID, rationale, and at least one GIVEN/WHEN/THEN acceptance criterion
+- **Non-functional requirements (NFR-XXX)** — performance, scalability, security, availability, compliance, and maintainability with measurable numeric targets
+- **Data model** — ERD in Mermaid notation with entity relationships, sensitivity classification, and retention policy
+- **Error handling specification** — hierarchical error code taxonomy, RFC 7807 response format, and retry policies per error category
+- **API design standards** — naming conventions, versioning strategy, and pagination specification
+- **Traceability matrix** — every FR-XXX and NFR-XXX linked to at least one test case
+- **Assumptions and open questions** — flagged with owners and resolution deadlines
+
+## How to invoke it
+
+<CodeGroup>
+```bash Claude Code
+claude "Write a technical specification for a webhook delivery system that retries failed deliveries with exponential backoff, supports HMAC-SHA256 signing, and must handle 10,000 events per minute."
+```
+
+```bash Gemini CLI
+gemini "Write a technical specification for a webhook delivery system that retries failed deliveries with exponential backoff, supports HMAC-SHA256 signing, and must handle 10,000 events per minute."
+```
+
+```bash Generic (any agent)
+Write a technical specification for [system or feature name]
+```
+</CodeGroup>
+
+<Tip>
+  Supply as much context as possible in the invocation. The skill treats everything provided as known context and will **not re-ask** for information already given. Include performance targets, integration systems, and any known constraints.
+</Tip>
+
+## Example scenarios
+
+The skill is designed for prompts like these:
+
+- *"Write a technical specification for a payment processing microservice that handles refunds"*
+- *"I need an SRS for our new multi-tenant user authentication system"*
+- *"Define the requirements for a real-time inventory sync between our warehouse and ERP"*
+
+## Key concepts
+
+### EARS syntax — four patterns
+
+Every requirement must be written using **EARS (Easy Approach to Requirements Syntax)**. EARS eliminates ambiguous requirements by forcing a specific grammatical pattern per trigger type.
+
+<Tabs>
+  <Tab title="Ubiquitous">
+    **Template:** `The <system> shall <action>.`
+
+    Applies unconditionally, regardless of state or event.
+
+    ```text
+    The webhook delivery system shall retry failed deliveries up to 3 times.
+    ```
+
+    Use for capabilities that are always active — no trigger, no condition.
+  </Tab>
+  <Tab title="Event-driven">
+    **Template:** `When <event>, the <system> shall <action>.`
+
+    Triggered by a specific observable event.
+
+    ```text
+    When a payment succeeds, the system shall send a webhook notification
+    to the merchant's registered endpoint within 30 seconds.
+    ```
+
+    Use when a requirement is activated by an external occurrence.
+  </Tab>
+  <Tab title="Conditional">
+    **Template:** `Where <condition>, the <system> shall <action>.`
+
+    Applies only when a specific condition is true.
+
+    ```text
+    Where the merchant's account is in sandbox mode, the system shall not
+    charge real payment instruments.
+
+    Where the request includes an Idempotency-Key header, the system shall
+    return the cached response for duplicate keys within 24 hours.
+    ```
+
+    Use for behavior that is gated on a pre-existing state or configuration.
+  </Tab>
+  <Tab title="State-driven">
+    **Template:** `While <state>, the <system> shall <action>.`
+
+    Applies continuously while a system is in a defined state.
+
+    ```text
+    While the delivery status is "retrying", the system shall apply
+    exponential backoff with jitter between attempts.
+
+    While the system is in maintenance mode, the API shall return HTTP 503
+    with a Retry-After header.
+    ```
+
+    Use for ongoing behaviors that persist for the duration of a state.
+  </Tab>
+</Tabs>
+
+### SMART requirements
+
+Every requirement must be **Specific, Measurable, Achievable, Relevant, and Traceable**. Vague requirements are invalid:
+
+| ❌ Invalid | ✅ Valid |
+| :--- | :--- |
+| The system shall be fast | The system shall respond to 95% of API requests within 200ms under 1,000 concurrent users |
+| The system shall be secure | All API endpoints shall require JWT Bearer token authentication; unauthenticated requests shall return HTTP 401 |
+| The system shall be scalable | The system shall scale horizontally by adding instances with linear throughput increase within 15% variance |
+
+### Functional vs non-functional requirements
+
+**Functional requirements (FR-XXX)** describe what the system does — behavior, data processing, business rules. Each FR-XXX must be atomic (one testable assertion per ID) and map to at least one test case.
+
+**Non-functional requirements (NFR-XXX)** define quality constraints — performance, security, availability, scalability, compliance. NFRs are tagged as `hard` (non-negotiable, blocks release) or `soft` (desirable target with threshold).
+
+<Warning>
+  Skipping NFRs is the most common requirement mistake. An NFR without a measurable target is useless. Specify the exact metric, threshold, and measurement method — for example: `p99 latency ≤ 200ms at 1,000 concurrent users`.
+</Warning>
+
+### Requirement granularity
+
+Requirements must be **atomic** — one testable assertion per FR/NFR ID. Compound requirements must be split:
+
+```text
+# Bad — compound, untestable as a single assertion
+The system shall authenticate users and store their preferences and send welcome emails.
+
+# Good — atomic, each independently testable
+FR-001: When a user submits valid credentials, the system shall return a JWT with a 15-minute expiry.
+FR-002: When a user updates their preferences, the system shall persist the changes within 500ms.
+FR-003: When a new user completes registration, the system shall send a welcome email within 60 seconds.
+```
+
+### Hard vs soft constraints
+
+Every NFR must be classified:
+
+- **Hard constraint** — non-negotiable. Violation makes the system unfit for purpose. Blocks release. Example: *All payment data shall be encrypted at rest using AES-256.*
+- **Soft constraint** — desirable. May be relaxed under negotiation. Triggers review but does not block release. Has a target threshold and a minimum threshold.
+
+### ISO/IEC/IEEE 29148:2018
+
+The skill aligns with this standard (which supersedes IEEE 830-1998). Requirements are defined at both stakeholder and system level, iteratively refined, uniquely identified, and traced to design and test artifacts.
+
+## Interview process
+
+The skill runs a structured interview before drafting:
+
+<Steps>
+  <Step title="Context loading">
+    Reads all existing `.engineering-docs/` files to extract already-known information — team size, tech stack, constraints, user personas. Does **not** re-ask for information already documented.
+  </Step>
+  <Step title="Socratic clarification (max 2–3 questions)">
+    Asks about: (1) the 1–2 most critical user workflows, and (2) which external systems must be integrated. Questions are presented as tool calls with multiple-choice options — not inline conversation.
+  </Step>
+  <Step title="Scope and context (60 min)">
+    Establishes who commissioned the work, system boundaries, and explicitly out-of-scope items.
+  </Step>
+  <Step title="Stakeholder analysis (60 min)">
+    Identifies all stakeholder classes — users, operators, integrators, regulators — with their goals and constraints.
+  </Step>
+  <Step title="Functional requirements (2–4 hrs)">
+    Writes all FR-XXX requirements in EARS syntax with measurable acceptance criteria.
+  </Step>
+  <Step title="Non-functional requirements (2 hrs)">
+    Writes all NFR-XXX requirements across performance, scalability, security, availability, reliability, compliance, and maintainability.
+  </Step>
+  <Step title="Constraints, dependencies, assumptions (60 min)">
+    Documents hard technical constraints, external dependencies, and flags all assumptions with owners and validation deadlines.
+  </Step>
+  <Step title="Traceability matrix (60 min)">
+    Maps each requirement to at least one test case or acceptance criterion.
+  </Step>
+</Steps>
+
+## Output structure
+
+The generated document contains these sections from `template.md`:
+
+<Accordion title="Document Control & Executive Summary">
+  Document ID, version history table, status, author, reviewers, and a 60-second executive summary stating what the system does, what business need it addresses, and the critical success criteria.
+</Accordion>
+
+<Accordion title="Scope (In Scope / Out of Scope / System Boundary)">
+  Explicit in-scope capabilities, out-of-scope exclusions with reasons, and a system boundary diagram showing inputs, the system, and outputs.
+</Accordion>
+
+<Accordion title="Stakeholders Table">
+  Each stakeholder class with their representative, primary goal, and key constraint.
+</Accordion>
+
+<Accordion title="EARS Reference Table">
+  Embedded reference table of all four EARS patterns with examples for the documented system.
+</Accordion>
+
+<Accordion title="Functional Requirements (FR-XXX)">
+  EARS-syntax requirements grouped by feature/subsystem. Each includes: unique ID, statement, rationale, GIVEN/WHEN/THEN acceptance criteria, priority (MoSCoW), and owner stakeholder class.
+</Accordion>
+
+<Accordion title="Non-Functional Requirements (NFR-XXX)">
+  Grouped by category: performance, scalability, availability, security, compliance, maintainability. Each includes a measurable acceptance criterion and hard/soft tag.
+</Accordion>
+
+<Accordion title="External Interface Requirements">
+  APIs consumed (dependencies) and APIs provided (exposed), with protocol, format, and authentication method.
+</Accordion>
+
+<Accordion title="Data Model (ERD)">
+  Mermaid ERD with entity attributes, keys, and relationships. Entity summary table with sensitivity classification and retention period.
+</Accordion>
+
+<Accordion title="Error Handling Specification">
+  Error code taxonomy table, RFC 7807 error response format, and retry policies per error category (transient, rate-limited, client error).
+</Accordion>
+
+<Accordion title="API Design Standards">
+  Naming conventions, versioning strategy, and pagination spec for all exposed endpoints.
+</Accordion>
+
+<Accordion title="Monitoring and Alerting Requirements">
+  Required metrics, alert thresholds and severity levels, dashboard specifications, and SLOs mapped to each NFR.
+</Accordion>
+
+<Accordion title="Test Case Specification">
+  Traceability matrix and test case table: TC-XXX linked to FR-XXX/NFR-XXX, type, preconditions, steps, and expected result.
+</Accordion>
+
+<Accordion title="Constraints, Assumptions, Dependencies, Open Questions">
+  Technology, platform, regulatory, and budget constraints. Assumptions flagged with impact-if-wrong, owner, and validation status. Dependencies with blocking flag and expected date.
+</Accordion>
+
+<Accordion title="Traceability Matrix">
+  Full mapping: Requirement ID → description → linked test cases → linked design section → constraint type → status.
+</Accordion>
+
+<Accordion title="Sign-off">
+  Signature table for Engineering Lead, Product Manager, Security, and Architecture.
+</Accordion>
+
+## Handoff
+
+**Reads from:**
+- `1-business-plan.md` — problem statement, users, scope, standing constraints
+- `2-project-plan.md` — timeline constraints, team capacity
+- `3-user-personas.md` — user-driven functional requirements and success metrics
+- `technical-feasibility-study` — feasibility verdict, conditional requirements, risk findings
+
+**Feeds into:**
+- `system-architecture-document` — functional and NFR requirements driving architectural decisions
+- `ux-flow-specification` — functional requirements defining screen behavior
+- `test-plan` — acceptance criteria and traceability matrix
+
+## Quality gate
+
+Before marking the document `final`, verify every item:
+
+- [ ] Every requirement uses EARS syntax, has a unique FR-XXX or NFR-XXX ID, and includes at least one measurable acceptance criterion
+- [ ] All NFRs have specific numeric targets — no "fast", "scalable", or "secure" without a number
+- [ ] The traceability matrix maps every requirement to at least one test case with no orphaned requirements
+- [ ] The "Out of Scope" section is populated and every exclusion has a documented reason
+- [ ] All assumptions are flagged as validated or unvalidated with an owner and target resolution date
+- [ ] No open questions remain unresolved

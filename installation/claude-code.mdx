@@ -1,0 +1,168 @@
+---
+title: "Install Engineering Docs in Claude Code"
+sidebarTitle: "Claude Code"
+description: "Three ways to add all 22 engineering skills to Claude Code: official marketplace, manual registry, or the global --claude flag via npx."
+---
+
+Engineering Docs has a first-class Claude Code integration. The plugin ships a complete `.claude-plugin/plugin.json` manifest at the repository root, meaning it is recognized by Claude Code's native plugin system out of the box. You can install from the official marketplace with a single slash command, register the GitHub repository manually, or use `npx engineering-docs --claude` to copy the full plugin tree to your global Claude directory.
+
+## Method 1: Official marketplace (recommended)
+
+The fastest path — no cloning, no scripts, no manual configuration.
+
+<Steps>
+
+  <Step title="Open Claude Code and run the install command">
+    ```bash Claude Code chat
+    /plugin install engineering-docs@claude-plugins-official
+    ```
+    Claude Code fetches the plugin from the official registry and installs it to `~/.claude/plugins/engineering-docs/`.
+  </Step>
+
+  <Step title="Reload your session">
+    Close and reopen your Claude Code session, or run `/reload` to pick up the new plugin. The 22 skills are now available automatically.
+  </Step>
+
+</Steps>
+
+## Method 2: Manual marketplace registration
+
+Use this method if you want to pin to a specific commit or fork of the repository.
+
+<Steps>
+
+  <Step title="Register the marketplace source">
+    ```bash Claude Code chat
+    /plugin marketplace add fattain-naime/engineering-docs
+    ```
+  </Step>
+
+  <Step title="Install from the registered source">
+    ```bash Claude Code chat
+    /plugin install engineering-docs@engineering-docs
+    ```
+  </Step>
+
+  <Step title="Reload your session">
+    Restart Claude Code or run `/reload` to activate the newly installed plugin.
+  </Step>
+
+</Steps>
+
+## Method 3: Global flag install via npx
+
+This method copies every plugin file directly to `~/.claude/plugins/engineering-docs/` on your local machine, giving you full offline access to all skills, hooks, agents, and the MCP server config.
+
+<Steps>
+
+  <Step title="Run the installer with the Claude flag">
+    ```bash terminal
+    npx engineering-docs --claude
+    ```
+    The short alias `-c` also works:
+    ```bash terminal
+    npx engineering-docs -c
+    ```
+  </Step>
+
+  <Step title="Verify the install path">
+    The installer prints the full destination path as it runs. Confirm files landed in:
+    ```
+    ~/.claude/plugins/engineering-docs/
+    ```
+  </Step>
+
+  <Step title="Reload Claude Code">
+    Restart Claude Code or run `/reload` in chat to pick up the new plugin directory.
+  </Step>
+
+</Steps>
+
+## What gets installed
+
+When you use the `--claude` flag (or methods 1 / 2), the following structure is copied to `~/.claude/plugins/engineering-docs/`:
+
+```
+engineering-docs/
+├── .claude-plugin/
+│   ├── plugin.json          ← Plugin manifest (name, version, author, keywords)
+│   └── marketplace.json     ← Marketplace listing metadata
+├── skills/                  ← 22 SKILL.md files
+├── agents/                  ← 4 custom agent definitions
+├── hooks/
+│   ├── hooks.json           ← SessionStart hook config
+│   ├── check-progress.js    ← In-progress documentation detector
+│   └── run-hook.cmd         ← Windows hook compatibility shim
+├── .mcp.json                ← MCP server configuration
+├── scripts/                 ← Utility and validation scripts
+├── evals/                   ← Eval test framework
+└── README.md, LICENSE, package.json
+```
+
+The `CLAUDE.md` agent configuration file is written using **safe-write**: it is created in the install directory only if it does not already exist there, so any customizations you have made are always preserved.
+
+## Validate the plugin
+
+Claude Code ships a built-in plugin validator. Run it from inside the plugin directory to confirm the manifest, skills, agents, and hooks all pass validation:
+
+```bash terminal
+claude plugin validate .
+```
+
+A successful run prints a green confirmation for each component. This is the same validation the official marketplace runs on submission.
+
+## Plugin manifest
+
+The `.claude-plugin/plugin.json` manifest that Claude Code reads:
+
+```json .claude-plugin/plugin.json
+{
+  "name": "engineering-docs",
+  "version": "1.2.2",
+  "description": "22 engineering documentation skills covering the complete software lifecycle: business concept, project planning, personas, specs, feasibility, UX flow, architecture, design system, API, database, ADR, access control, security, testing, implementation, deployment, SLO, operations, disaster recovery, and incident review.",
+  "author": {
+    "name": "Fattain Naime",
+    "email": "iamnaime@builderhall.com"
+  },
+  "homepage": "https://github.com/fattain-naime/engineering-docs",
+  "repository": "https://github.com/fattain-naime/engineering-docs",
+  "license": "MIT"
+}
+```
+
+## SessionStart hook
+
+The plugin registers a `SessionStart` hook that runs `check-progress.js` every time a Claude Code session starts (and on `clear` or `compact`). The hook scans the current working directory for in-progress documentation and surfaces a summary — so Claude always knows which documents have already been produced before the first message.
+
+```json hooks/hooks.json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/check-progress.js",
+            "async": false
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+<Tip>
+  The `SessionStart` hook means Claude never asks for context that already exists in your project directory. It reads prior documents before asking any clarifying questions, so it will never repeat information you have already provided in a previous session.
+</Tip>
+
+## MCP server
+
+The `.mcp.json` file configures a local MCP server that exposes three tools Claude can call:
+
+- `validate_document_set` — checks all generated documents for structural completeness
+- `check_consistency` — verifies entity names, roles, and decisions are consistent across documents
+- `generate_index` — builds the master blueprint index from completed documents
+
+These tools are used automatically by the orchestrator skill (`using-engineering-docs`) when it runs cross-document consistency checks.

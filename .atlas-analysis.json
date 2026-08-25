@@ -1,0 +1,160 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "Engineering Docs",
+  "projectDescription": "A composable plugin of 22 auto-triggering documentation skills that turns any AI coding agent into a principal engineer — generating production-ready engineering documents across the full software lifecycle.",
+  "theme": "palm",
+  "primaryColor": "#40993e",
+  "lightColor": "#183018",
+  "darkColor": "#e4e8e4",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "how-it-works"
+            ]
+          },
+          {
+            "group": "Installation",
+            "pages": [
+              "installation/overview",
+              "installation/claude-code",
+              "installation/gemini-cli",
+              "installation/cursor-windsurf",
+              "installation/other-agents"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/orchestrator",
+              "concepts/greenfield-vs-brownfield",
+              "concepts/skill-pipeline",
+              "concepts/cross-document-consistency"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/new-project",
+              "guides/adding-a-feature",
+              "guides/using-standalone-skills",
+              "guides/mcp-integration"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Skills Reference",
+        "groups": [
+          {
+            "group": "Discovery & Planning",
+            "pages": [
+              "skills/using-engineering-docs",
+              "skills/business-concept",
+              "skills/project-plan",
+              "skills/user-personas-behavior"
+            ]
+          },
+          {
+            "group": "Specification & Architecture",
+            "pages": [
+              "skills/technical-specification",
+              "skills/technical-feasibility-study",
+              "skills/system-architecture-document",
+              "skills/architecture-decision-record",
+              "skills/technical-blueprint"
+            ]
+          },
+          {
+            "group": "Design & API",
+            "pages": [
+              "skills/api-design-document",
+              "skills/database-design-document",
+              "skills/ux-flow-specification",
+              "skills/design-system-specification",
+              "skills/admin-access-control-specification"
+            ]
+          },
+          {
+            "group": "Quality & Delivery",
+            "pages": [
+              "skills/security-threat-model",
+              "skills/test-strategy-document",
+              "skills/implementation-plan",
+              "skills/deployment-plan"
+            ]
+          },
+          {
+            "group": "Operations",
+            "pages": [
+              "skills/technical-runbook",
+              "skills/slo-error-budget-document",
+              "skills/disaster-recovery-plan",
+              "skills/incident-postmortem"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "22 composable documentation skills covering the complete software lifecycle",
+    "Orchestrator skill (`using-engineering-docs`) that auto-routes from raw idea to full document set",
+    "Greenfield and brownfield mode detection — new projects vs. adding features to existing codebases",
+    "Tool-call interview mechanism — one question at a time, never repeats answered context",
+    "Cross-document consistency checks — entity names, roles, and decisions verified across all documents",
+    "Compatible with 14+ AI agents: Claude Code, Gemini CLI, Cursor, Copilot, Goose, Pi, Cline, Roo Code, and more",
+    "Standards-aligned output: ISO/IEC/IEEE 29148, C4 Model, STRIDE, Google SRE, OpenAPI 3.1, MADR",
+    "MCP server integration for programmatic document validation and index generation",
+    "Session-persistent progress tracking via `.engineering-docs/index.md`",
+    "CLI installer (`npx engineering-docs`) with per-agent target flags"
+  ],
+  "publicApiSurface": [
+    "npx engineering-docs — interactive CLI installer",
+    "npx engineering-docs --claude | --gemini | --cursor | --goose | --pi | --opencode | --kilo | --roo | --cline | --factory | --copilot | --codex | --kimi",
+    "scripts/setup.sh [--claude | --gemini | --local | --cursor ...]",
+    "scripts/setup.ps1 [-Target claude | gemini | cursor ...]",
+    "MCP tool: validate_document_set",
+    "MCP tool: check_consistency",
+    "MCP tool: generate_index",
+    "Skill: using-engineering-docs (orchestrator)",
+    "Skill: business-concept",
+    "Skill: project-plan",
+    "Skill: user-personas-behavior",
+    "Skill: technical-specification",
+    "Skill: technical-feasibility-study",
+    "Skill: system-architecture-document",
+    "Skill: architecture-decision-record",
+    "Skill: technical-blueprint",
+    "Skill: api-design-document",
+    "Skill: database-design-document",
+    "Skill: ux-flow-specification",
+    "Skill: design-system-specification",
+    "Skill: admin-access-control-specification",
+    "Skill: security-threat-model",
+    "Skill: test-strategy-document",
+    "Skill: implementation-plan",
+    "Skill: deployment-plan",
+    "Skill: technical-runbook",
+    "Skill: slo-error-budget-document",
+    "Skill: disaster-recovery-plan",
+    "Skill: incident-postmortem",
+    "Hook: SessionStart (check-progress.js)",
+    "Agent: documentation-generator",
+    "Agent: architecture-reviewer",
+    "Agent: api-designer",
+    "Agent: test-strategist",
+    "Script: generate-dependency-graph.js",
+    "Script: validate-documents.js",
+    "Script: calculate-error-budget.js",
+    "Script: generate-test-cases.js",
+    "Script: generate-ddl.js",
+    "Script: check-consistency.js"
+  ]
+}

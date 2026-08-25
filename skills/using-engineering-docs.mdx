@@ -1,0 +1,297 @@
+---
+title: "using-engineering-docs: the Engineering Docs orchestrator skill"
+sidebarTitle: "Orchestrator"
+description: "The entry-point skill that takes a raw project idea, decides which of the 22 skills apply, and drives the full documentation pipeline end to end without you naming a single skill."
+---
+
+The `using-engineering-docs` skill is the master orchestrator for the Engineering Docs plugin. Give it a project idea in any form — a one-liner, a messy paragraph, a half-formed concept — and it takes over: runs a structured discovery conversation, decides which of the 21 specialist document skills apply and in what order, then executes that sequence one skill at a time until a complete, cross-consistent document set is ready for a coding agent or a human engineer to build from. You never need to know a skill's name, a template's structure, or the right order to generate documents.
+
+## At a Glance
+
+| Property | Value |
+|:---|:---|
+| **Type** | Orchestrator |
+| **Output file** | `.engineering-docs/index.md` (master index + all generated docs) |
+| **Estimated time** | 1–2 hrs for intake & planning, then 2–4 hrs per document generated |
+| **Modes** | Mode A — Greenfield (new project) · Mode B — Brownfield (existing codebase or feature add) |
+| **Skills driven** | All 21 downstream skills |
+
+## Best For
+
+- Turning a raw business or product idea into a complete set of pre-development documents automatically
+- Starting any new project when you don't know (and shouldn't have to know) which specific documents you need
+- Handing a project to an AI coding agent and wanting the full context it would need already written down
+- Working through documentation for a project idea interactively, one document at a time, with the right skill invoked automatically at each step
+
+## How to Invoke It
+
+The argument is your project idea in your own words — any level of polish.
+
+<CodeGroup>
+```bash Claude Code
+engineering-docs:using-engineering-docs I want to build a subscription habit tracker app. I don't know what documents I need — help me figure out and write whatever's necessary.
+```
+
+```bash Gemini CLI
+@engineering-docs using-engineering-docs I want to build a subscription habit tracker app. I don't know what documents I need — help me figure out and write whatever's necessary.
+```
+
+```bash Generic / any agent
+using-engineering-docs [your project idea, in your own words]
+```
+</CodeGroup>
+
+<Tip>
+You can hand it a single sentence or several paragraphs — the more context the better, but the orchestrator's first job is to extract whatever is missing through structured questions.
+</Tip>
+
+## Example Scenarios
+
+The orchestrator handles the full range from greenfield products to brownfield feature additions:
+
+<CardGroup cols={2}>
+  <Card title="Custom gift-box e-commerce" icon="gift">
+    "I have an idea: an e-commerce site where customers build custom gift boxes by picking items, and the site recommends what pairs well or auto-builds a set from a short quiz. Help me turn this into everything needed to build it."
+  </Card>
+  <Card title="Habit tracker SaaS" icon="check-circle">
+    "I want to build a subscription-based habit tracker app. I don't know what documents I need, just help me figure out and write whatever's necessary."
+  </Card>
+  <Card title="Internal support tool" icon="headset">
+    "Here's a rough concept for an internal tool our support team needs. Take it from idea to something a developer could start building from."
+  </Card>
+  <Card title="Brownfield: add payments" icon="credit-card">
+    "We have an existing app and want to add a payment system. Help me document what's needed."
+  </Card>
+</CardGroup>
+
+## Mode Detection
+
+Before asking a single question, the orchestrator determines which mode it is operating in.
+
+<Tabs>
+  <Tab title="Mode A — Greenfield">
+    **Triggered when:** No `.engineering-docs/` folder exists and no indication of an existing codebase is present.
+
+    The full pipeline runs, starting from business concept. All six phases execute in order.
+  </Tab>
+  <Tab title="Mode B — Brownfield">
+    **Triggered when:**
+    - A `.engineering-docs/index.md` already exists, OR
+    - The user's request references "add a feature," "extend," "modify," or similar language, OR
+    - An existing codebase is present with no engineering-docs history
+
+    In Mode B the orchestrator **does not** re-run the full business-plan or system-architecture interview. Instead it reads existing docs (or scans the codebase), infers current architecture and conventions, asks the user to confirm or correct that inference, then runs only the subset of skills relevant to the change — typically `technical-blueprint`, `architecture-decision-record`, `database-design-document`, `api-design-document`, `test-strategy-document`, and `security-threat-model` (if auth/payments/PII are touched). New numbered docs append to the existing set; nothing is overwritten.
+  </Tab>
+</Tabs>
+
+## The 6-Phase Workflow
+
+<Steps>
+  <Step title="Phase 0: Business Concept Completion (Mode A Only)">
+    Before any technical skill runs, the orchestrator interviews the user until the business idea is fully understood. All questions are delivered one at a time via tool calls — never inline — with multiple-choice options and an "I don't know, you decide" escape hatch. Six standing constraint questions are asked first (team size, hosting, budget, timeline, regulatory needs, existing integrations); they are asked once and never repeated.
+
+    **Output:** `1-business-plan.md` — the foundational document every later skill reads from.
+
+    **Quality gate:** Cannot proceed until the business concept is clear enough that a stranger could understand what's being built, for whom, and why.
+  </Step>
+
+  <Step title="Phase 1: Idea Intake & Project Characterization">
+    For Mode A, the business concept *is* the idea intake; the orchestrator summarizes key facts and proceeds to skill selection. For Mode B, it reads existing docs or scans the codebase and asks the user to confirm its inference about the current state.
+
+    Using the Skill Directory (below), the orchestrator determines internally which conditional skills apply to this specific project. The user sees the plan, not the routing logic.
+  </Step>
+
+  <Step title="Phase 2: Sequencing Plan Preview">
+    The resulting document list and order is presented in a few lines — what will be produced, roughly in what order, and a one-line reason for any conditional skill included or excluded. The user can redirect ("skip the design system doc, we're API-only") but this is not a multi-question gate. A progress ledger (`index.md`) is initialized at this point — it survives context compaction and lets the pipeline resume across sessions.
+  </Step>
+
+  <Step title="Phase 3: Sequential Document Generation">
+    For each document in the plan, in order:
+    1. Read the skill's `SKILL.md` to know what that document needs.
+    2. Read **all** prior documents in `.engineering-docs/` to extract already-known information.
+    3. Diff: what does this document need that isn't already known?
+    4. Ask **only** the truly missing items — maximum 2–3 questions per skill.
+    5. Generate the document using the skill's template.
+    6. Write it to `.engineering-docs/<N>-<slug>.md` with the required metadata header.
+    7. Update `index.md` with the new document's status.
+    8. Confirm with the user before chaining to the next document.
+  </Step>
+
+  <Step title="Phase 4: Consistency & Completeness Pass">
+    After each document (incremental) and as a final pass before the set is declared ready:
+    - Do architecture decisions match what the database and API docs assume?
+    - Does every endpoint in the API doc have a corresponding entity in the database doc?
+    - Does the security threat model cover every external-facing API surface?
+    - Do entity names, role names, and terminology match across all documents?
+
+    Mismatches are surfaced to the user with a recommended resolution before moving on.
+  </Step>
+
+  <Step title="Phase 5: Master Project Index">
+    Produce the master index — the single document listing everything produced, its status, and the recommended reading order for anyone (or any agent) picking up the project cold. Includes an "If you only read three documents" pointer for focused tasks.
+  </Step>
+</Steps>
+
+<Note>
+**Phase 6: Revision** — After the user reviews any document, the orchestrator applies requested changes, re-runs the consistency check across all dependent documents, updates `index.md`, and confirms with the user before moving on.
+</Note>
+
+## The Skill Directory (All 22 Skills)
+
+| Phase | Skill | Produces | Always / Conditional |
+|:---|:---|:---|:---|
+| 0 | `business-concept` | Problem, users, value proposition, monetization, constraints | **Always** |
+| 0.5 | `project-plan` | Scope, milestones, RACI, timeline, work breakdown structure | **Always** |
+| 0.6 | `user-personas-behavior` | User personas, jobs-to-be-done, success metrics, analytics plan | **Always** |
+| 1 | `technical-feasibility-study` | Go/no-go on a specific risky technical approach | Conditional — only if a specific part of the idea is technically uncertain |
+| 2 | `technical-specification` | Functional & non-functional requirements (SRS/TSD) | **Always** |
+| 2.5 | `ux-flow-specification` | User journeys, screen-by-screen flow, every UI state | Conditional — skip only for a pure backend/API-only project with no UI |
+| 3 | `system-architecture-document` | Overall structure — diagrams, tech stack, NFRs | **Always** |
+| 3+ | `architecture-decision-record` | One immutable record per significant decision | Ad hoc — created throughout, not as a single upfront document |
+| 4 | `database-design-document` | ERD, schema, indexing, migration plan | Conditional — skip only if the project has no structured data to persist |
+| 5 | `api-design-document` | API contract, resources, auth, versioning | Conditional — include if there's any internal or external API surface |
+| 5.5 | `admin-access-control-specification` | Roles, permission matrix, audit logging, break-glass access | Conditional — include as soon as there is more than one privilege level |
+| 6 | `security-threat-model` | STRIDE-based threat model and risk register | Conditional — include whenever the project handles accounts, payments, PII, or any external attack surface |
+| 7 | `design-system-specification` | Visual design tokens, components, accessibility | Conditional — skip for API-only or purely internal CLI-type projects |
+| 8 | `technical-blueprint` | Detailed design for one specific feature/component | Ad hoc — one per non-trivial feature surfaced during implementation planning |
+| 8.5 | `implementation-plan` | Dependency-ordered build sequence, phase gates | **Always** |
+| 9 | `test-strategy-document` | Testing pyramid, mocking strategy, CI gates | **Always** |
+| 10 | `deployment-plan` | Release strategy, go/no-go gate, rollback | **Always** |
+| 11 | `technical-runbook` | On-call operations manual | Conditional — include once something will actually run in production |
+| 11.5 | `disaster-recovery-plan` | RTO/RPO, backup strategy, failover runsheets | Conditional — include whenever downtime or data loss has real business or compliance cost |
+| 11.6 | `slo-error-budget-document` | Reliability targets, error budget, burn-rate alerts | Conditional — include once real users/customers depend on uptime |
+| ongoing | `incident-postmortem` | Blameless review of a real incident | Never scheduled upfront — only used reactively after launch |
+
+<Tip>
+**Right-sizing, not maximalism.** A weekend side project and a payments platform do not need the same 15 documents. The orchestrator's job is to determine which conditional skills actually apply — generating every possible document regardless of project size defeats the purpose.
+</Tip>
+
+## Anti-Rationalization Table
+
+These are shortcut thoughts the orchestrator must never act on:
+
+| Thought | Reality |
+|:---|:---|
+| "This project is simple enough to skip idea intake" | Simple projects have the most unexamined assumptions. The intake takes 5 minutes. |
+| "I can batch all the clarifying questions at once" | One question at a time produces better answers. Batching overwhelms the user. |
+| "I'll generate all conditional documents just to be thorough" | Right-sizing is the point. Unnecessary docs waste time and dilute quality. |
+| "I'll do the consistency check at the end" | Incremental checks catch errors when they're cheap to fix. |
+| "The user probably knows what they want, I'll skip the interview" | The interview IS the value. Without it, you're guessing. |
+| "This document looks good enough, I'll move on" | Quality gates exist for a reason. |
+| "I remember the skill, I don't need to read it" | Skills evolve. Always read the current SKILL.md before invoking. |
+| "I'll just generate the template without the interview" | The interview produces the content. The template is just the structure. |
+
+## Output Structure
+
+```
+<project root>/
+  .engineering-docs/
+    index.md
+    1-business-plan.md
+    2-project-plan.md
+    3-user-personas.md
+    4-feasibility-study.md              (if applicable)
+    5-technical-specification.md
+    6-ux-flow-specification.md          (if applicable)
+    7-system-architecture.md
+    8-database-design.md                (if applicable)
+    9-api-design.md                     (if applicable)
+    10-admin-access-control.md          (if applicable)
+    11-security-threat-model.md         (if applicable)
+    12-design-system.md                 (if applicable)
+    13-blueprint-<feature-name>.md      (one per feature, numbered sub-sequence)
+    14-implementation-plan.md
+    15-test-strategy.md
+    16-deployment-plan.md
+    17-technical-runbook.md             (if applicable)
+    18-disaster-recovery.md             (if applicable)
+    19-slo-error-budget.md              (if applicable)
+    adr/
+      0001-<decision-slug>.md
+```
+
+## Session Persistence
+
+Interviews for a full Mode A pipeline can span multiple sessions. The orchestrator is designed to stop and resume without restarting:
+
+- After every phase completes, `index.md` records which phases are done, which is in progress, and what the next unanswered question is.
+- On a new invocation in a project with a partial `.engineering-docs/` folder, the orchestrator reads that state first and resumes exactly where it left off — nothing already answered is re-asked.
+
+## Subagent Delegation for Large Projects
+
+For projects requiring 10 or more documents, the orchestrator can delegate document generation to subagents to preserve its context window for coordination.
+
+<Accordion title="When to use subagents">
+  - **Independent documents:** After the architecture is complete, database design and API design can be generated in parallel because they share the same source (the architecture) but do not depend on each other.
+  - **Long sessions:** If the context window is growing large, delegate the next document generation to a subagent that starts fresh.
+  - **Complex documents:** Documents like `system-architecture-document` (8 phases, 4–8 hrs) benefit from a dedicated subagent with focused context.
+
+  **Documents that can run in parallel once architecture is complete:**
+  - `database-design-document` and `api-design-document`
+  - `admin-access-control-specification` and `security-threat-model`
+  - Multiple `technical-blueprint` documents for independent features
+
+  **Documents that must be sequential:**
+  - `business-concept` → `project-plan` → `user-personas-behavior` → `technical-specification` → `system-architecture-document`
+  - `implementation-plan` → `test-strategy-document` → `deployment-plan`
+</Accordion>
+
+<Accordion title="Context window thresholds">
+  - **After 5–7 documents:** Suggest starting a fresh session. Quality degrades when context is too large.
+  - **Signal to watch for:** If the agent starts re-asking questions already answered, or loses track of entity names from earlier documents, context is too full — start a fresh session immediately.
+  - **How to resume:** The `index.md` file is the anchor. A fresh session reads `index.md` first, loads the most recent 2–3 documents for context, and resumes exactly where the previous session left off.
+</Accordion>
+
+## Handoff
+
+<CardGroup cols={2}>
+  <Card title="Reads From" icon="arrow-down">
+    - User's raw project idea or existing codebase
+    - Existing `.engineering-docs/` folder (if brownfield)
+    - Standing constraints: team size, hosting, budget, timeline, compliance
+  </Card>
+  <Card title="Feeds Into" icon="arrow-up">
+    - Every downstream skill in the pipeline
+    - The master `index.md` — tracks progress and reading order
+    - Any AI coding agent starting cold — the complete document set is the handoff artifact
+  </Card>
+</CardGroup>
+
+## Quality Gate
+
+Before declaring the document set complete, verify:
+
+- [ ] Mode detection was correct (greenfield vs brownfield)
+- [ ] Phase 0 (business concept) was completed for Mode A
+- [ ] Standing constraint questions were asked once, early
+- [ ] Each document was generated using its skill's template
+- [ ] Each document has the required metadata frontmatter
+- [ ] Incremental consistency checks were run after each document
+- [ ] Final consistency pass found no unresolved conflicts
+- [ ] Master index (`index.md`) is complete and accurate
+- [ ] All `[agent-decided]` items are flagged in the index
+- [ ] No secrets, credentials, or API keys appear in any document
+- [ ] Reading order in index matches dependency order
+- [ ] "If you only read three documents" pointer is accurate
+
+## Document Metadata Standard
+
+Every generated document opens with a frontmatter block so any agent parsing the folder can understand a file's status without reading its full body:
+
+```yaml
+---
+title: <document title>
+skill: <source skill name>
+status: draft | final | superseded
+owner_reviewed: true | false
+last_updated: <date>
+depends_on: [<other doc filenames this one assumes as context>]
+supersedes: <filename, if this replaces an earlier doc>
+---
+```
+
+`owner_reviewed: false` flags any document containing `[agent-decided]` answers — it signals to a human reviewer exactly where to focus before the build starts.
+
+## Security Policy
+
+Never write actual secrets, credentials, API keys, or connection strings into any generated document — even if the user provides them during the interview. Where a document references such a value, use the name/purpose only (e.g., `STRIPE_SECRET_KEY`, to be set via environment variable) and never the literal value.

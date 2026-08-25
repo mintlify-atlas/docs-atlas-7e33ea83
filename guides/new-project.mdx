@@ -1,0 +1,281 @@
+---
+title: "Build a new project blueprint with Engineering Docs from scratch"
+sidebarTitle: "New Project"
+description: "End-to-end walkthrough of Greenfield Mode: from raw idea to a complete .engineering-docs/ folder ready for a coding agent to build from."
+---
+
+Engineering Docs' **Greenfield Mode (Mode A)** takes a raw project idea — a sentence, a messy paragraph, a half-formed concept — and produces a complete, cross-consistent set of pre-development documents. The orchestrator skill (`using-engineering-docs`) handles all routing decisions: you answer questions about your project, it decides which of the 22 specialist skills to invoke, in what order, and assembles the results into a navigable master index. You never need to name a skill or choose a document type.
+
+## What you'll end up with
+
+After a full Mode A run, your project root will contain a `.engineering-docs/` folder organized like this:
+
+```
+<project root>/
+  .engineering-docs/
+    index.md                            ← Master index — reading order + status of every doc
+    1-business-plan.md
+    2-project-plan.md
+    3-user-personas.md
+    4-feasibility-study.md              ← Only if a risky technical choice needs go/no-go analysis
+    5-technical-specification.md
+    6-ux-flow-specification.md          ← Only for projects with a UI
+    7-system-architecture.md
+    8-database-design.md                ← Only if there's structured data to persist
+    9-api-design.md                     ← Only if there's an internal or external API surface
+    10-admin-access-control.md          ← Only once there are multiple privilege levels
+    11-security-threat-model.md         ← Only if accounts, payments, or PII are involved
+    12-design-system.md                 ← Only for customer-facing UI projects
+    13-blueprint-<feature-name>.md      ← One per non-trivial feature
+    14-implementation-plan.md
+    15-test-strategy.md
+    16-deployment-plan.md
+    17-technical-runbook.md             ← Only once something runs in production
+    18-disaster-recovery.md             ← Only when downtime has real business cost
+    19-slo-error-budget.md              ← Only when real users depend on uptime
+    adr/
+      0001-<decision-slug>.md           ← Architecture Decision Records, added throughout
+```
+
+---
+
+## Step-by-step walkthrough
+
+<Steps>
+  <Step title="Invoke the orchestrator with your idea">
+    Give the orchestrator your project idea in plain language — a polished brief is not required. One sentence is enough to start.
+
+    ```text Example prompt
+    I want to build a website to sell umbrellas for rainy weather. People in
+    cities like Seattle and London need quality umbrellas at fair prices —
+    not cheap garbage and not overpriced luxury. I'm thinking product browsing
+    by use case, a "weather advisor" recommender, maybe a subscription model.
+    I'm a solo developer (React, Node.js), ~$5K hosting budget, 3-month MVP
+    timeline. Help me turn this into everything needed to build it.
+    ```
+
+    The orchestrator detects **Mode A (Greenfield)** because there is no existing `.engineering-docs/` folder and no language indicating an existing codebase.
+
+    <Note>
+      You don't need to say "use engineering-docs" or name any skill. The orchestrator activates automatically when your agent has the plugin installed.
+    </Note>
+  </Step>
+
+  <Step title="Business concept interview — Phase 0">
+    Before any technical document is produced, the orchestrator runs a **business concept interview**. This is mandatory: every downstream document is built on the answers gathered here. Without it, the orchestrator would be guessing.
+
+    Questions arrive **one at a time via tool calls** — not as a bulleted list in chat. This keeps conversation clean and produces better answers.
+
+    **What to expect — the six business concept questions:**
+
+    1. **Core idea** — What is being built, and what's the single most important thing it needs to do well?
+    2. **Who it's for** — Who are the users, and what problem are they solving today without this product?
+    3. **Value proposition** — Why would someone choose this over alternatives, including doing nothing?
+    4. **Monetization** — How does this make money? (subscription, one-time, freemium, ads, internal cost savings)
+    5. **Must-have vs. nice-to-have** — What's the minimum that's useful? What can wait for v2?
+    6. **Timeline and budget** — When does this need to exist, and what's the rough budget?
+
+    Each question is presented with multiple-choice options and an **"I don't know, you decide"** escape hatch. When you take that path, the orchestrator picks the most reasonable option, tags it as `[agent-decided]` in the document, and continues without blocking.
+
+    <Tip>
+      If your initial prompt already contains some of these details (team size, budget, timeline), the orchestrator will **not** re-ask. It reads your prompt first and only asks for what's genuinely missing.
+    </Tip>
+
+    **Output of Phase 0:** `1-business-plan.md` — the foundational document every later skill reads before asking its own questions.
+  </Step>
+
+  <Step title="Standing constraint questions — asked once, early">
+    Alongside the business concept questions, the orchestrator asks a set of **standing constraint questions** that every downstream skill depends on. These are asked **once**, early in Phase 0, and never repeated.
+
+    <CardGroup cols={2}>
+      <Card title="Team size & skill level" icon="users">
+        Affects framework and stack recommendations throughout all technical documents.
+      </Card>
+      <Card title="Hosting / infra preference" icon="server">
+        Self-hosted, cloud, existing vendor lock-in — shapes the architecture and deployment plan.
+      </Card>
+      <Card title="Budget sensitivity" icon="dollar-sign">
+        Determines managed-service vs. self-hosted trade-offs in every operational document.
+      </Card>
+      <Card title="Timeline urgency" icon="clock">
+        MVP-speed constraints versus enterprise rigor — affects scope and right-sizing decisions.
+      </Card>
+      <Card title="Regulatory / compliance needs" icon="shield">
+        Data residency, PCI, GDPR — triggers or skips the security threat model and access control spec.
+      </Card>
+      <Card title="Existing integrations" icon="plug">
+        Systems this must connect to or avoid conflicting with — informs the API design and architecture.
+      </Card>
+    </CardGroup>
+  </Step>
+
+  <Step title="Sequencing plan preview">
+    After the business concept is complete, the orchestrator uses the project profile to determine which of the 22 skills apply. It then **previews the document plan** before generating anything:
+
+    ```text Example sequencing plan
+    Here's what I'll produce for the umbrella shop project, in order:
+
+    1. Business Plan (done ✓)
+    2. Project Plan — scope, milestones, RACI
+    3. User Personas — commuter, subscription buyer, gift purchaser
+    4. Technical Specification — SRS with EARS-syntax requirements
+    5. UX Flow Specification — browse, quiz, checkout, subscription flows
+    6. System Architecture — C4 diagrams, React + Node.js + PostgreSQL stack
+    7. Database Design — product catalog, orders, subscriptions
+    8. API Design — REST API for React frontend
+    9. Security Threat Model — payment and customer PII handling
+    10. Design System — customer-facing brand tokens and components
+    11. Implementation Plan — dependency-ordered build sequence
+    12. Test Strategy — testing pyramid, CI gates
+    13. Deployment Plan — release strategy, rollback
+
+    Skipping: technical-feasibility-study (nothing technically uncertain),
+    disaster-recovery-plan (solo-dev MVP, $5K budget — not warranted),
+    slo-error-budget-document (no SLA obligations at MVP stage).
+
+    Shall I proceed, or would you like to adjust this list?
+    ```
+
+    This is your opportunity to redirect — "skip the design system, we're using a component library" or "add an admin access control spec, we'll have staff accounts." The orchestrator proceeds once there's no objection, and it **initializes `index.md`** as a durable progress tracker at this point.
+
+    <Info>
+      The sequencing plan is a proposal, not a contract. If a later interview reveals an unexpected complexity (e.g., a feature that needs an ADR), the plan is updated in real time.
+    </Info>
+  </Step>
+
+  <Step title="Sequential document generation with confirmation gates">
+    The orchestrator generates documents **one at a time**, in order. For each document:
+
+    1. Reads the skill's `SKILL.md` to understand what that document needs.
+    2. Reads **all prior documents** in `.engineering-docs/` to extract already-known information — team size, budget, stack, constraints.
+    3. Asks **only what's genuinely missing** — maximum 2–3 questions per skill, one at a time via tool calls.
+    4. Generates the document using the skill's template.
+    5. Writes it to `.engineering-docs/<N>-<slug>.md` with a YAML frontmatter block.
+    6. **Confirms with you** before moving to the next — no silent chaining.
+
+    Every generated document opens with this metadata header:
+
+    ```yaml Document metadata frontmatter
+    ---
+    title: System Architecture Document — Umbrella Shop
+    skill: system-architecture-document
+    status: draft
+    owner_reviewed: false
+    last_updated: 2025-01-15
+    depends_on: [1-business-plan.md, 2-project-plan.md, 5-technical-specification.md]
+    ---
+    ```
+
+    After each document completes, you'll see a progress report:
+
+    ```text Progress update example
+    Document 6 of 13 complete: system-architecture-document
+    Status: draft (awaiting your review)
+    Next up: database-design-document
+    Estimated remaining: ~7 documents
+    ```
+  </Step>
+
+  <Step title="Consistency pass">
+    After each document is produced, the orchestrator runs an **incremental consistency check** — verifying entity names, role names, and terminology match across the documents written so far.
+
+    **What it checks:**
+    - Does the architecture doc's chosen approach match what the database and API docs assume?
+    - Does every endpoint in the API doc have a corresponding entity in the database doc?
+    - Does the security threat model cover every external-facing API surface listed in the API doc?
+    - Does the test strategy reference every feature blueprint that exists?
+    - Do entity names match across all documents (e.g., `Order` vs `order` vs `Purchase`)?
+
+    Mismatches are surfaced to you with a plain-language explanation and a recommended resolution — not silently fixed.
+
+    <Warning>
+      Consistency checks happen **after each document**, not just at the end. Catching a naming mismatch between the business plan and the database design while only 3 documents exist is far cheaper than finding it in document 12.
+    </Warning>
+  </Step>
+
+  <Step title="Master index — the final deliverable">
+    After all documents are generated and the final consistency pass is complete, the orchestrator produces `index.md` — the single document that ties everything together.
+
+    The master index contains:
+    - Every document produced, its status, and the order to read them
+    - A "if you only read three documents" shortcut pointer for any agent or engineer starting cold
+    - All `[agent-decided]` items flagged for human review
+    - The complete reading order that matches the dependency order
+
+    ```markdown index.md excerpt
+    # Master Project Index — Umbrella Shop
+
+    Generated: 2025-01-15
+
+    ## Document Set
+
+    | # | Document                          | Status | Reviewed | Last Updated |
+    |:--|:----------------------------------|:-------|:---------|:-------------|
+    | 1 | [Business Plan](1-business-plan.md) | final | true | 2025-01-14 |
+    | 2 | [Project Plan](2-project-plan.md) | final | true | 2025-01-14 |
+    ...
+
+    ## If You Only Read Three Documents
+    Read: 1-business-plan.md, 7-system-architecture.md, 14-implementation-plan.md
+
+    ## Agent-Decided Items (Review Before Build)
+    - Fulfillment API integration approach [agent-decided] → see 9-api-design.md §4.2
+    ```
+
+    <Tip>
+      The `index.md` file is the **anchor for session persistence**. If you need to stop mid-pipeline and return in a new session, the orchestrator reads `index.md` first and resumes exactly where it left off — no re-asking, no restarting.
+    </Tip>
+  </Step>
+</Steps>
+
+---
+
+## Right-sizing: not every project needs every document
+
+The orchestrator decides which conditional skills to run based on your project's actual profile. You will **never** receive a disaster recovery plan for a solo-developer MVP, or an SLO error budget document for an internal prototype.
+
+<Accordion title="Which documents are always produced?">
+  These eight documents are generated for every project, regardless of size:
+
+  | # | Document | What it covers |
+  |:--|:---------|:---------------|
+  | 1 | Business Plan | Problem, users, value proposition, monetization, constraints |
+  | 2 | Project Plan | Scope, milestones, RACI, timeline, work breakdown |
+  | 3 | User Personas | Target users, jobs-to-be-done, success metrics |
+  | 5 | Technical Specification | Functional and non-functional requirements (EARS syntax) |
+  | 7 | System Architecture | C4 diagrams, tech stack, NFRs |
+  | 14 | Implementation Plan | Dependency-ordered build sequence, phase gates |
+  | 15 | Test Strategy | Testing pyramid, CI gates, coverage targets |
+  | 16 | Deployment Plan | Release strategy, go/no-go gate, rollback |
+</Accordion>
+
+<Accordion title="Which documents are conditional?">
+  These are only produced when the project actually warrants them:
+
+  | Document | Included when... |
+  |:---------|:----------------|
+  | Technical Feasibility Study | A specific technical approach is genuinely uncertain |
+  | UX Flow Specification | The project has a customer-facing UI |
+  | Database Design | There is structured data to persist |
+  | API Design | There is any internal or external API surface |
+  | Admin Access Control Spec | There are multiple privilege levels |
+  | Security Threat Model | Accounts, payments, or PII are involved |
+  | Design System Spec | It's a customer-facing product with a brand |
+  | Technical Runbook | Something will actually run in production |
+  | Disaster Recovery Plan | Downtime or data loss has real business cost |
+  | SLO / Error Budget | Real customers depend on uptime SLAs |
+</Accordion>
+
+---
+
+## Session persistence across long runs
+
+A full Mode A pipeline for a non-trivial project can span multiple sessions. Engineering Docs is designed for this:
+
+- After every phase, `index.md` records which phases are done, which is in progress, and what the next unanswered question is.
+- On a new invocation in a project that already has a partial `.engineering-docs/` folder, the orchestrator reads `index.md` first and **resumes exactly where it left off**.
+- For projects requiring 10+ documents, the orchestrator may suggest starting a fresh agent session between major phases to keep quality high — each skill reads prior documents from files, not from conversation memory.
+
+<Tip>
+  If your agent starts re-asking questions that were already answered, or loses track of entity names established in earlier documents, context is too full. Start a fresh session — the orchestrator will pick up from `index.md` without missing a beat.
+</Tip>

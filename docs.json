@@ -1,72 +1,123 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "Engineering Docs",
+  "theme": "palm",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#40993e",
+    "light": "#183018",
+    "dark": "#e4e8e4"
   },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
+  "favicon": "https://media.brand.dev/b5178e57-7d81-4a7e-939f-92d52d7496ca.jpg",
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "https://media.brand.dev/f1986576-e8c8-439d-8199-89d74fab0460.png",
+    "dark": "https://media.brand.dev/f1986576-e8c8-439d-8199-89d74fab0460.png"
   },
   "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
     "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "type": "github",
+      "href": "https://github.com/fattain-naime/engineering-docs"
     }
-  },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/fattain-naime/engineering-docs"
     }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "how-it-works"
+            ]
+          },
+          {
+            "group": "Installation",
+            "pages": [
+              "installation/overview",
+              "installation/claude-code",
+              "installation/gemini-cli",
+              "installation/cursor-windsurf",
+              "installation/other-agents"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/orchestrator",
+              "concepts/greenfield-vs-brownfield",
+              "concepts/skill-pipeline",
+              "concepts/cross-document-consistency"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/new-project",
+              "guides/adding-a-feature",
+              "guides/using-standalone-skills",
+              "guides/mcp-integration"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Skills Reference",
+        "groups": [
+          {
+            "group": "Discovery & Planning",
+            "pages": [
+              "skills/using-engineering-docs",
+              "skills/business-concept",
+              "skills/project-plan",
+              "skills/user-personas-behavior"
+            ]
+          },
+          {
+            "group": "Specification & Architecture",
+            "pages": [
+              "skills/technical-specification",
+              "skills/technical-feasibility-study",
+              "skills/system-architecture-document",
+              "skills/architecture-decision-record",
+              "skills/technical-blueprint"
+            ]
+          },
+          {
+            "group": "Design & API",
+            "pages": [
+              "skills/api-design-document",
+              "skills/database-design-document",
+              "skills/ux-flow-specification",
+              "skills/design-system-specification",
+              "skills/admin-access-control-specification"
+            ]
+          },
+          {
+            "group": "Quality & Delivery",
+            "pages": [
+              "skills/security-threat-model",
+              "skills/test-strategy-document",
+              "skills/implementation-plan",
+              "skills/deployment-plan"
+            ]
+          },
+          {
+            "group": "Operations",
+            "pages": [
+              "skills/technical-runbook",
+              "skills/slo-error-budget-document",
+              "skills/disaster-recovery-plan",
+              "skills/incident-postmortem"
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

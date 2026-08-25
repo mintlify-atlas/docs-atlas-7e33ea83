@@ -1,0 +1,183 @@
+---
+title: "The skill pipeline: document sequencing and phase gates in Engineering Docs"
+sidebarTitle: "Skill Pipeline"
+description: "How Engineering Docs orders its 22 skills from Phase 0 through ongoing, why sequence matters, and how context passes between documents."
+---
+
+Engineering Docs generates documents in a deliberate sequence, not in parallel or on demand. Each skill in the pipeline reads what came before it — extracting already-known facts about your project so it never repeats a question — and adds a layer of specificity that the next skill depends on. The ordering is not arbitrary: it mirrors the information dependencies that exist in real software engineering. You cannot write a meaningful system architecture without knowing who the users are and what requirements they have; you cannot write a test strategy without knowing what you're building and how it's structured.
+
+This page describes the full pipeline from Phase 0 through ongoing skills, explains which skills are always-core versus conditional, and documents the context-passing rules that make the no-repeat-questions guarantee possible.
+
+---
+
+## The Full Ordered Pipeline
+
+| Phase | Skill | Produces | Type |
+|:------|:------|:---------|:-----|
+| 0 | `business-concept` | Problem, users, value proposition, monetization, constraints | Always |
+| 0.5 | `project-plan` | Scope, milestones, RACI, timeline, work breakdown structure | Always |
+| 0.6 | `user-personas-behavior` | User personas, jobs-to-be-done, success metrics, analytics plan | Always |
+| 1 | `technical-feasibility-study` | Go/no-go recommendation on a specific risky technical approach | Conditional |
+| 2 | `technical-specification` | Functional & non-functional requirements (SRS/TSD, EARS syntax) | Always |
+| 2.5 | `ux-flow-specification` | User journeys, screen-by-screen flow, every UI state | Conditional |
+| 3 | `system-architecture-document` | C4/4+1 diagrams, tech stack, NFRs, component structure | Always |
+| 3+ | `architecture-decision-record` | One immutable MADR-format record per significant decision | Ad hoc |
+| 4 | `database-design-document` | ERD, schema, indexing strategy, migration plan | Conditional |
+| 5 | `api-design-document` | REST/OpenAPI 3.1 contract, RFC 7807 errors, versioning | Conditional |
+| 5.5 | `admin-access-control-specification` | RBAC matrix, audit logging, break-glass procedures | Conditional |
+| 6 | `security-threat-model` | STRIDE analysis, attack surface map, risk register | Conditional |
+| 7 | `design-system-specification` | Design tokens, component library, accessibility standards | Conditional |
+| 8 | `technical-blueprint` | Detailed design for one specific feature or component | Ad hoc |
+| 8.5 | `implementation-plan` | Dependency-ordered build sequence, phase gates | Always |
+| 9 | `test-strategy-document` | Testing pyramid, mocking strategy, CI gates, coverage targets | Always |
+| 10 | `deployment-plan` | Release strategy, go/no-go gate, rollback procedures | Always |
+| 11 | `technical-runbook` | On-call operations manual (Google SRE standards) | Conditional |
+| 11.5 | `disaster-recovery-plan` | RTO/RPO, backup strategy, failover runsheets | Conditional |
+| 11.6 | `slo-error-budget-document` | SLI/SLO targets, burn-rate alerts, error budget policy | Conditional |
+| ongoing | `incident-postmortem` | Blameless RCA with Five Whys (post-launch only) | Reactive |
+
+---
+
+## Why the Sequence Matters
+
+The pipeline is a **directed acyclic graph of information dependencies**. Each document extracts specific facts from prior documents and enriches them with new detail. Changing the order breaks this graph.
+
+<Steps>
+  <Step title="Phase 0: Establish the foundation">
+    `business-concept` captures the problem, users, value proposition, and constraints. `project-plan` turns those into scope and milestones. `user-personas-behavior` defines who exactly will use the product and how success is measured. Every subsequent skill reads from all three of these before its own interview begins.
+  </Step>
+  <Step title="Phases 1–2: Requirements before architecture">
+    `technical-specification` writes down what the system must do — formally, with EARS-syntax requirements and a traceability matrix. This must precede architecture because an architecture that isn't grounded in requirements is speculation. `technical-feasibility-study` (conditional) validates technically uncertain assumptions before committing to a full architecture.
+  </Step>
+  <Step title="Phase 3: Architecture before data and API">
+    `system-architecture-document` defines the overall structure — components, boundaries, tech stack, NFRs. The database design and API design that follow can only be written correctly once the architectural boundaries are settled. A schema written before the architecture is known may violate component boundaries or duplicate data across services.
+  </Step>
+  <Step title="Phases 4–6: Data, API, and security together">
+    `database-design-document` and `api-design-document` both depend on the architecture but not on each other — they can be generated in parallel as subagent delegations for large projects. `security-threat-model` comes after both because its STRIDE analysis needs the complete API surface and data model to be meaningful.
+  </Step>
+  <Step title="Phases 8–10: Plan, test, deploy">
+    `implementation-plan` defines the dependency-ordered build sequence — it cannot be written until what is being built is fully specified. `test-strategy-document` maps to the features and components defined in the implementation plan. `deployment-plan` assumes both are complete.
+  </Step>
+  <Step title="Phases 11+: Operations — only when real users exist">
+    `technical-runbook`, `disaster-recovery-plan`, and `slo-error-budget-document` are only meaningful once something is actually deployed to production with real users. Writing them for a prototype wastes time and creates false confidence.
+  </Step>
+</Steps>
+
+---
+
+## Always-Core vs. Conditional Skills
+
+<Tabs>
+  <Tab title="Always-Core Skills">
+    These eight skills run on every project regardless of scope, size, or technology:
+
+    | Skill | Why it's always needed |
+    |:------|:----------------------|
+    | `business-concept` | No downstream document is meaningful without a defined problem and user. |
+    | `project-plan` | Scope and milestones are required to right-size every other document. |
+    | `user-personas-behavior` | Requirements, UX, and test strategy all require defined users. |
+    | `technical-specification` | Formal requirements prevent misalignment between what's designed and what's built. |
+    | `system-architecture-document` | Every implementation decision references the architecture. |
+    | `implementation-plan` | Build order dependencies must be explicit before work starts. |
+    | `test-strategy-document` | No feature is complete without a plan to verify it. |
+    | `deployment-plan` | Every project must know how it gets to production before build starts. |
+  </Tab>
+  <Tab title="Conditional Skills">
+    These skills are included when the project's characteristics warrant them:
+
+    | Skill | Include when… |
+    |:------|:--------------|
+    | `technical-feasibility-study` | A specific part of the idea is technically uncertain and has a real go/no-go question |
+    | `ux-flow-specification` | There is any user-facing UI — skip only for pure backend/API-only projects |
+    | `database-design-document` | The project persists any structured data |
+    | `api-design-document` | There is any internal or external API surface |
+    | `admin-access-control-specification` | More than one privilege level exists in the system |
+    | `security-threat-model` | The project handles accounts, payments, PII, or any external attack surface |
+    | `design-system-specification` | There is a user-facing frontend that needs design consistency |
+    | `technical-runbook` | Something will actually run in production with on-call coverage |
+    | `disaster-recovery-plan` | Downtime or data loss has real business or compliance cost |
+    | `slo-error-budget-document` | Real users or customers depend on uptime SLAs |
+  </Tab>
+  <Tab title="Ad Hoc Skills">
+    Two skills are not scheduled in a fixed pipeline position — they are created as needed:
+
+    **`architecture-decision-record` (ADR):** Created at the moment a significant architectural decision is made, throughout the project lifecycle — not as a single upfront document. Each ADR is immutable and stored in `adr/0001-<decision-slug>.md`. They accumulate over the project's life, including after launch.
+
+    **`technical-blueprint`:** One per non-trivial feature, created during or after the implementation planning phase when a feature's scope justifies detailed pre-design. Multiple blueprints for independent features can be generated in parallel as subagent delegations.
+  </Tab>
+</Tabs>
+
+---
+
+## Context Passing: What Each Document Contains and What Subsequent Skills Extract
+
+The no-repeat-questions guarantee is enforced by a strict context-passing rule: before asking any interview question, a skill must read all prior documents and use the information found there. This table shows what each phase provides and what downstream skills draw from it.
+
+| Document | Contains | Read by |
+|:---------|:---------|:--------|
+| `business-concept` | Problem, target users, value proposition, monetization model, scope constraints, timeline, budget, regulatory needs, existing integrations | All subsequent skills |
+| `project-plan` | Milestones, RACI, team size and roles, work breakdown structure, dependency list | `technical-specification`, `implementation-plan`, `deployment-plan` |
+| `user-personas-behavior` | Persona definitions, jobs-to-be-done, success metrics, analytics requirements | `technical-specification`, `ux-flow-specification`, `test-strategy-document` |
+| `technical-specification` | Functional requirements (EARS syntax), non-functional requirements, traceability matrix | `system-architecture-document`, `api-design-document`, `test-strategy-document` |
+| `system-architecture-document` | Component boundaries, tech stack selection, NFR decisions, C4 diagrams, deployment topology | `database-design-document`, `api-design-document`, `security-threat-model`, `implementation-plan` |
+| `database-design-document` | Entity names, schema, relationships, indexing strategy | `api-design-document`, `security-threat-model`, `test-strategy-document` |
+| `api-design-document` | Endpoint definitions, resource models, auth scheme, error contract | `security-threat-model`, `admin-access-control-specification`, `test-strategy-document` |
+| `implementation-plan` | Build phases, dependency order, phase gates, what each phase delivers | `test-strategy-document`, `deployment-plan` |
+
+<Tip>
+If a skill asks a question that's already answered in a prior document, that's a signal the prior documents weren't loaded before the interview began. Every skill's SKILL.md contains explicit instructions to read prior documents first and diff against what's already known.
+</Tip>
+
+---
+
+## The One-Skill-at-a-Time Rule
+
+The pipeline enforces one hard constraint on execution: **exactly one skill's interview runs at a time.** The orchestrator never pre-asks questions belonging to a later skill just because they're on its mind. Each skill's interview happens only when it's that skill's turn, using its own SKILL.md as the guide.
+
+This rule exists because batching questions across multiple skills:
+- Overwhelms the user with questions that have no immediate context
+- Produces shallower answers for each skill
+- Creates ambiguity about which answer belongs to which document
+- Makes it impossible to use earlier answers as context for later questions
+
+**Interview mechanism:** All questions are delivered via tool calls (e.g., `AskUserQuestion`), not inline in the conversation. One question per tool call. Multiple-choice options are preferred. Every question accepts "I don't know, you decide" as a valid escape hatch — the orchestrator picks the most reasonable option, records it as `[agent-decided]`, and continues without blocking.
+
+---
+
+## Progress Reporting Format
+
+After each document completes, the orchestrator reports to the user in a consistent format:
+
+```text progress-report.txt
+Document 5 of 12 complete: system-architecture-document
+Status: draft (awaiting your review)
+[agent-decided] items: 1 (database choice: PostgreSQL — see section 4.2)
+Next up: database-design-document
+Estimated time remaining: ~3 documents × 30 min = ~90 min
+```
+
+The report always includes: document number and total, document name and status, any `[agent-decided]` items that need human review, the next document in the sequence, and an estimated time remaining based on remaining documents.
+
+---
+
+## Context Window Management for Large Projects
+
+For projects requiring 10 or more documents, context window management becomes critical to output quality:
+
+<Steps>
+  <Step title="Suggest a fresh session after 5–7 documents">
+    The orchestrator's context accumulates with each interview and generation cycle. Quality degrades when context is too full — the agent may start re-asking already-answered questions or losing track of entity names established in earlier documents.
+  </Step>
+  <Step title="Watch for the degradation signals">
+    If the agent re-asks a question already answered in a prior document, or loses track of entity names established earlier, context is too full. Start a fresh session immediately rather than continuing.
+  </Step>
+  <Step title="Resume from index.md">
+    A fresh session reads `index.md` first, loads the most recent 2–3 documents for working context, and resumes from the last recorded checkpoint. Nothing is lost because the documents are on disk.
+  </Step>
+  <Step title="Delegate complex documents to subagents">
+    Documents with 6+ internal phases — `system-architecture-document`, `disaster-recovery-plan` — are good candidates for subagent delegation. The subagent starts fresh with only the prior documents it needs, generates the target document, and writes it to `.engineering-docs/`. The orchestrator reads the result and updates `index.md`.
+  </Step>
+  <Step title="Parallelize independent documents">
+    Once the architecture is complete, `database-design-document` and `api-design-document` depend on the same source (the architecture) but not on each other. They can be generated by parallel subagents, halving the time for that phase. The same applies to `admin-access-control-specification` and `security-threat-model`, and to multiple `technical-blueprint` documents for independent features.
+  </Step>
+</Steps>

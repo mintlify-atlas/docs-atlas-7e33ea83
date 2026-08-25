@@ -1,0 +1,313 @@
+---
+title: "technical-blueprint skill: detailed feature design at Google/Stripe quality"
+sidebarTitle: "Technical Blueprint"
+description: "Produce a Technical Design Document (TDD) for a specific feature or component: problem statement, proposed design, API contracts, security threat model, test plan, and rollback procedure."
+---
+
+The `technical-blueprint` skill produces a Technical Design Document (TDD) — a detailed specification of how a specific feature or component will be built. Unlike a system architecture document (which describes what the system is), a blueprint specifies **how a specific piece will be built** with enough detail that any qualified engineer on the team can implement it correctly. This skill is invoked **ad-hoc**, once per non-trivial feature, during implementation planning — not as a scheduled pipeline step.
+
+<Info>
+  **At a glance**
+
+  | Field | Value |
+  | :--- | :--- |
+  | **Type** | Workflow (ad-hoc, one per non-trivial feature) |
+  | **Estimated time** | 4–8 hours |
+  | **Output file** | `TDD-[IDENTIFIER]-[VERSION].md` |
+  | **Argument hint** | `[feature or component name]` |
+  | **Target length** | 5–10 pages per feature |
+</Info>
+
+## Blueprint vs spec vs architecture document
+
+| Document | Scope | Answers |
+| :--- | :--- | :--- |
+| **Technical Specification** | Entire system | *What* must the system do? (requirements, acceptance criteria) |
+| **System Architecture Document** | Entire system | *How* is the system structured? (components, deployment, ADRs) |
+| **Technical Blueprint** | Single feature or component | *How exactly* will this specific piece be built? (design, data model, API contract, security, rollback) |
+
+A blueprint is written **once per non-trivial feature** — features involving non-obvious technical decisions, schema changes, API contract changes, security surface, or cross-team dependencies. Routine CRUD features with no novel complexity do not need a blueprint.
+
+## Best for
+
+<CardGroup cols={2}>
+  <Card title="Non-trivial feature design" icon="pencil-ruler">
+    Designing any new feature or component that involves significant technical decisions, cross-service interactions, or schema changes.
+  </Card>
+  <Card title="Team alignment" icon="people-group">
+    Getting team alignment before implementation begins — the most valuable outcome is the conversations the document provokes, not the document itself.
+  </Card>
+  <Card title="Trade-off documentation" icon="scale-balanced">
+    Documenting design trade-offs for future engineers who will maintain or extend the feature, with specific rejection reasons for alternatives.
+  </Card>
+  <Card title="Pre-implementation review" icon="magnifying-glass-chart">
+    Satisfying a formal pre-implementation review process — the TDD is the artifact presented for design review.
+  </Card>
+</CardGroup>
+
+## What it produces
+
+The skill generates a 5–10 page TDD with these major artifacts:
+
+- **Problem statement with evidence** — error rates, support tickets, business impact; not just a feature description
+- **Goals and non-goals** — specific, measurable outcomes and explicit out-of-scope items to prevent scope creep
+- **Background and context** — what a reviewer needs to know about the current state to evaluate the design
+- **Proposed design** — high-level approach, detailed component interaction (sequence diagram with error paths), key algorithms in pseudocode, data model changes (SQL DDL + migration strategy), API contract changes (request/response schemas + error codes)
+- **Alternatives considered** — at least two alternatives with specific, evidence-based rejection reasons
+- **Security considerations** — STRIDE threat analysis for new attack surface introduced
+- **Performance and scalability estimation** — latency delta, query count, memory impact, load test plan
+- **Observability specification** — structured log events, metrics (counters, histograms), alerting conditions
+- **Feature flag strategy** — flag name, type, default state, rollout phases, cleanup plan
+- **Data migration plan** — migration type, steps, backward compatibility checklist, rollback SQL
+- **Rollout plan** — deployment strategy, phases, success criteria, proceed triggers
+- **Rollback plan** — explicit trigger conditions and numbered steps an on-call engineer can follow
+- **Test plan** — unit, integration, E2E, load, and security tests with pass criteria and edge cases
+- **Documentation requirements** — OpenAPI spec updates, runbook, user guide, ADR if needed
+- **Dependencies and blockers** — upstream dependencies, downstream dependents, decision dependencies
+- **Open questions and milestones** — unresolved questions with owners and resolution deadlines
+
+## How to invoke it
+
+<CodeGroup>
+```bash Claude Code
+claude "Write a technical design document for adding TOTP-based two-factor authentication to the admin login flow. We use PHP 8.3, PDO/MySQL, and Twig templates. The TOTP secret must be stored encrypted. Recovery codes must be supported."
+```
+
+```bash Gemini CLI
+gemini "Write a technical design document for implementing a token-based webhook signing system"
+```
+
+```bash Generic (any agent)
+technical-blueprint [feature or component name]
+```
+</CodeGroup>
+
+## Example scenarios
+
+- *"Write a technical design document for implementing a token-based webhook signing system"*
+- *"Design how we will add two-factor authentication (TOTP) to our admin portal"*
+- *"Create a TDD for migrating our synchronous payment processing to an async queue-based system"*
+
+## Key concepts
+
+### Design doc philosophy (Google/Stripe standard)
+
+A technical blueprint is:
+
+- **Short as possible, long as necessary.** If it takes more than 45 minutes to read, it is too long.
+- **Trade-off focused.** The Alternatives Considered section is mandatory. It proves you evaluated options, not just implemented the first idea.
+- **A conversation starter, not a contract.** Share early and revise often. The process of writing it surfaces gaps before they become production bugs.
+- **Living.** Update it as implementation evolves. A stale design doc is worse than no design doc.
+
+### The three mandatory sections
+
+These sections separate a senior engineer's design doc from a junior one:
+
+<CardGroup cols={3}>
+  <Card title="Alternatives Considered" icon="code-compare">
+    What else was evaluated and why it was rejected — with specific, evidence-based reasons. Vague rejections like "too complex" are not acceptable. This section proves due diligence.
+  </Card>
+  <Card title="Security Considerations" icon="shield-halved">
+    STRIDE analysis for every new attack surface introduced. Every feature, including non-security features, introduces new entry points, data flows, or trust boundary crossings.
+  </Card>
+  <Card title="Rollback Plan" icon="rotate-left">
+    Explicit trigger conditions and numbered steps an on-call engineer can execute at 3 AM without asking anyone. "We'll figure it out" is not a plan.
+  </Card>
+</CardGroup>
+
+### Error path coverage
+
+Sequence diagrams must show **error paths, not just the happy path**. For every critical external call, the design documents:
+
+- What happens when the call times out
+- What happens when the call returns a 5xx error
+- Retry behavior (count, backoff strategy, circuit breaker)
+- Fallback behavior when the dependency is unavailable (cached response, degraded mode, queue for later)
+- What the user sees for each error scenario
+
+### Observability by design
+
+Every new feature must be observable before it ships. The blueprint specifies:
+
+```text
+Log events:   [feature].request_started    → INFO  (request_id, user_id, operation)
+              [feature].request_completed  → INFO  (request_id, duration_ms, status)
+              [feature].request_failed     → ERROR (request_id, error_code, message)
+
+Metrics:      [feature]_requests_total          Counter  (status, operation)
+              [feature]_request_duration_seconds Histogram (operation)
+              [feature]_errors_total             Counter  (error_code)
+
+Alerts:       High error rate   → P2 if > X% 5xx for 5 min
+              High latency      → P2 if p99 > Xms for 5 min
+```
+
+Every alert must link to a runbook with diagnosis and remediation steps.
+
+### Feature flag strategy
+
+When a feature is rolled out incrementally or may need to be disabled quickly:
+
+| Aspect | Specification |
+| :--- | :--- |
+| Flag name | Descriptive, namespaced — e.g., `feature_totp_2fa`, `feature_webhook_v2` |
+| Type | Boolean toggle / Percentage rollout / User allowlist / Environment-based |
+| Default state | `Off` (safe default) for new features that can be toggled |
+| Rollout phases | Internal → Staging → Canary (5%) → Full rollout |
+| Cleanup plan | Specific date or condition when the flag is removed after full rollout |
+
+<Warning>
+  Feature flags that live indefinitely become permanent tech debt. Every flag must have an explicit cleanup plan in the blueprint before it ships.
+</Warning>
+
+### Data migration strategy
+
+When the feature requires schema changes:
+
+- **Migration type:** Additive only (new tables/columns) vs destructive (renames, type changes requiring downtime)
+- **Backward compatibility:** Can old code run against new schema? Can new code run against old schema during rollback window?
+- **Data backfill:** Is existing data migrated? Via background job, on-read migration, or one-time script?
+- **Rollback SQL:** Every migration must have a corresponding rollback script
+
+### Performance estimation
+
+Before implementation, the blueprint estimates:
+
+| Metric | Current | After Change | At 10x Scale |
+| :--- | :--- | :--- | :--- |
+| Requests per second | N | N | N |
+| Database queries per request | N | N | N |
+| Average response time | Xms | Xms | Xms |
+
+If the estimated latency delta or query count increase is non-trivial, a load test plan is specified.
+
+### Anti-patterns (what this prevents)
+
+- **Jumping to implementation without a problem statement.** Agents that skip the "why" and go straight to code design solve the wrong problem thoroughly.
+- **Alternatives Considered as an afterthought.** Vague rejections like "too complex" without evidence undermine the document's credibility.
+- **No rollback plan.** Every design touching production needs a rollback plan with trigger conditions and steps.
+- **Designing in isolation.** A blueprint is a conversation starter — listing open questions and assumptions is how you get the feedback that prevents costly bugs.
+- **Ignoring security for "non-security" features.** Reporting dashboards, notification systems, and admin UI features all introduce IDOR, data exposure, and authorization bypass risks.
+
+## Interview process
+
+<Steps>
+  <Step title="Context loading">
+    Reads all existing `.engineering-docs/` files — extracts tech stack, data model, API contracts, security requirements, and permission model from prior documents without re-asking.
+  </Step>
+  <Step title="Socratic clarification (max 2–3 questions)">
+    Asks: (1) What are the critical error recovery paths (what happens when external calls fail)? (2) What specific logging, metrics, or alerting is needed? Questions are tool calls with multiple-choice options.
+  </Step>
+  <Step title="Problem and context (40–60 min)">
+    States the problem with evidence (error rates, tickets, business impact), defines explicit goals and non-goals.
+  </Step>
+  <Step title="Proposed design (2–3 hrs)">
+    Documents the solution at the right level of detail: high-level approach, component interaction sequence diagram (including error paths), key algorithms, data model changes with DDL, API contract changes.
+  </Step>
+  <Step title="Alternatives considered (40–60 min)">
+    Documents at least two alternatives with specific, evidence-based rejection reasons. Shows why the proposed design beats alternatives on dimensions that matter for this problem.
+  </Step>
+  <Step title="Security and risk (40–60 min)">
+    Applies STRIDE thinking to the proposed design. Documents every new attack surface introduced and its mitigation.
+  </Step>
+  <Step title="Test plan and rollback (40–60 min)">
+    Defines how correctness is verified (unit, integration, E2E, load, security) and specifies the rollback procedure with trigger conditions and numbered steps.
+  </Step>
+</Steps>
+
+## Output structure
+
+<Accordion title="Problem Statement">
+  What problem this design solves, why it needs to be solved now, and the cost of not solving it. Evidence required: error rates, support ticket volume, performance benchmarks, or business impact metrics.
+</Accordion>
+
+<Accordion title="Goals and Non-Goals">
+  Specific, measurable goals. Explicit non-goals with brief reasons — prevents scope creep and misaligned implementation expectations.
+</Accordion>
+
+<Accordion title="Background and Context">
+  What a reviewer needs to know about the current state: existing behavior, architectural constraints, relevant prior decisions. Links to existing documentation rather than duplicating it.
+</Accordion>
+
+<Accordion title="Proposed Design">
+  **High-level approach:** one-paragraph solution description at C4 Level 3 abstraction.
+
+  **Detailed design:**
+  - Component interaction: Mermaid sequence diagram including error paths
+  - Key algorithms: pseudocode for non-trivial logic
+  - Data model changes: SQL DDL for new/modified tables, migration strategy, data volume estimate
+  - API contract changes: new/modified endpoints with full request/response schema and error code table
+  - Configuration: environment variables and config keys
+</Accordion>
+
+<Accordion title="Alternatives Considered">
+  Summary table. Full entry per alternative: description, specific rejection reasons with evidence, and what is lost by not choosing it. Concludes with a direct comparison showing why the proposed design was chosen.
+</Accordion>
+
+<Accordion title="Security Considerations">
+  STRIDE threat table: threat → category → attack vector → mitigation → residual risk. New attack surface introduced. Security requirements checklist (input validation, no secrets in logs, auth at every endpoint, no direct DB access outside repository layer).
+</Accordion>
+
+<Accordion title="Performance and Scalability">
+  Expected load profile table (current vs after change vs at 10x scale). Performance risk table with bottlenecks and mitigations.
+</Accordion>
+
+<Accordion title="Observability">
+  Structured log events with fields and levels. Metrics with type (Counter, Histogram, Gauge) and labels. Alert conditions with severity and runbook links.
+</Accordion>
+
+<Accordion title="Feature Flag Strategy">
+  Flag name, type, default state, rollout phases, and explicit cleanup plan.
+</Accordion>
+
+<Accordion title="Data Migration">
+  Migration type, step-by-step procedure with reversibility flag, backward compatibility checklist, rollback SQL.
+</Accordion>
+
+<Accordion title="Documentation Updates">
+  OpenAPI spec, runbook, user guide, and ADR — each with update required, owner, and status.
+</Accordion>
+
+<Accordion title="Dependencies and Blockers">
+  Upstream dependencies (blocking flag, owner, status), downstream dependents (impact if delayed), decision dependencies (options, owner, needed-by date).
+</Accordion>
+
+<Accordion title="Test Plan">
+  Table: test type → what is verified → tools → pass criterion. Edge case table with expected behavior and test status.
+</Accordion>
+
+<Accordion title="Rollout Plan">
+  Deployment strategy (Feature Flag / Blue-Green / Canary / Direct Deploy). Rollout phases with scope, success criteria, and proceed trigger.
+</Accordion>
+
+<Accordion title="Rollback Plan">
+  Trigger conditions (specific error rate, latency, business metric thresholds). Numbered rollback steps written for an on-call engineer. Estimated rollback time and data loss risk.
+</Accordion>
+
+<Accordion title="Open Questions and Milestones">
+  Unresolved questions with owners and resolution-needed-by dates. Milestone table: design approved → implementation complete → code review → staging validation → production release.
+</Accordion>
+
+## Handoff
+
+**Reads from:**
+- `4-technical-specification.md` — functional and non-functional requirements
+- `7-system-architecture.md` — architectural patterns and technology decisions
+- `8-database-design-document.md` — existing data model and table definitions
+- `9-api-design-document.md` — existing API contracts and endpoint specifications
+- `11-admin-access-control-specification.md` — permission requirements
+- `12-security-threat-model.md` — threat mitigations to incorporate
+
+**Feeds into:**
+- `15-implementation-plan.md` — feature designs sequenced into build phases
+- `architecture-decision-record` — decisions made during design that warrant a permanent ADR
+
+## Quality gate
+
+Before marking the document `final`, verify:
+
+- [ ] The problem statement includes concrete evidence (metrics, tickets, benchmarks) justifying why this needs to be built now
+- [ ] At least two alternatives are documented with specific, evidence-based rejection reasoning — not "too complex" without supporting evidence
+- [ ] A rollback plan exists with explicit trigger conditions and numbered steps an on-call engineer can follow without asking anyone
+- [ ] Security considerations address new attack surface introduced by this design (STRIDE analysis completed)
+- [ ] The test plan covers unit, integration, and at least one end-to-end scenario with defined pass criteria

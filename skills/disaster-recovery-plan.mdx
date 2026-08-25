@@ -1,0 +1,232 @@
+---
+title: "disaster-recovery-plan skill: RTO/RPO, backup strategy, and failover runsheets"
+sidebarTitle: "Disaster Recovery"
+description: "Produce a disaster recovery plan defining RTO/RPO targets, 3-2-1 backup strategy, per-scenario failover runsheets, and a drill schedule — covering regional outages, ransomware, and data corruption."
+---
+
+The `disaster-recovery-plan` skill answers the question that a runbook and a deployment plan deliberately do not: what happens when the primary infrastructure itself is gone? This skill handles the catastrophic scenarios — a region is down, a database is corrupted, a backup was never actually tested, or an attacker has encrypted production data. It defines, in dollars and hours, how much data loss and downtime the business has decided is survivable, then works backward to the backup, replication, and failover architecture required to hit those targets. The recovery drill is treated as the document's real test of validity, not the document itself.
+
+<Info>
+**Type:** Workflow · **Estimated time:** 2–4 hours · **Standards:** 3-2-1 backup rule; ISO 22301; compliance-friendly for PCI-DSS, SOC 2 · **Output file:** `.engineering-docs/18-disaster-recovery.md` · **Conditional skill** — include when downtime or data loss has a business or compliance cost, and especially before launch of any system holding financial or critical user data.
+</Info>
+
+## Best for
+
+<CardGroup cols={2}>
+  <Card title="Pre-launch compliance" icon="shield-check">
+    Formalizing recovery commitments before launching a system that holds financial, payment, or otherwise critical data — and satisfying PCI-DSS, SOC 2, or ISO 22301 audit requirements.
+  </Card>
+  <Card title="Backup reality check" icon="database">
+    Assessing whether current backup infrastructure can actually meet the business's downtime and data-loss tolerance, rather than assuming it can.
+  </Card>
+  <Card title="Infrastructure topology review" icon="diagram-project">
+    Surfacing single points of failure in current infrastructure and mapping each to a DR tier with explicit cost/recovery-speed trade-offs.
+  </Card>
+  <Card title="Drill schedule creation" icon="calendar-check">
+    Planning and scheduling regular disaster recovery drills and game days so a backup that has never been restored is no longer the plan.
+  </Card>
+</CardGroup>
+
+## What it produces
+
+The generated DR plan covers every layer from business impact through drill cadence:
+
+| Section | Purpose |
+|:---|:---|
+| **Executive Summary** | 3–5 sentences covering scope, worst-case scenarios, and headline RTO/RPO — written for a non-technical audience |
+| **Business Impact Analysis** | Per-system cost of downtime and data loss in concrete terms (revenue, compliance exposure) |
+| **DR Tier Assignment** | Each system mapped to the cheapest tier that meets its RTO/RPO |
+| **Disaster Scenario Catalog** | Named scenarios with detection method, declaration authority, and runsheet reference |
+| **Backup Strategy** | Inventory with 3-2-1 compliance check and explicit gap documentation |
+| **Recovery Priority Sequence** | Systems ordered for recovery based on dependency graph, not alphabetically |
+| **Cost Modeling** | Monthly infrastructure cost vs. downtime cost per hour — break-even analysis per tier |
+| **Failover Runsheets** | Numbered steps with owner and estimated time per scenario |
+| **Ransomware Procedures** | Isolation-first, forensic preservation, clean-backup identification, credential rotation |
+| **Data Integrity Validation** | Row counts, checksums, referential integrity, application smoke tests — before declaring recovery complete |
+| **Backup Encryption Key Management** | Key inventory, access control, KMS backup, escrow arrangement |
+| **DNS Failover & Traffic Routing** | TTL strategy, global LB routing, CDN failover behavior |
+| **Third-Party Dependency DR** | Inventory, fallback procedures, provider DR review |
+| **Communication Plan** | Internal and external notification responsibilities per stage |
+| **Drill Log & Tabletop Template** | Recurring drill schedule with outcome tracking |
+| **Compliance Mapping** | PCI-DSS, SOC 2, ISO 22301 control mapping |
+
+## How to invoke it
+
+Pass the system or service name as the argument. Providing current backup tooling, frequency, hosting details, and any prior outage history gives the agent what it needs to evaluate whether current infrastructure actually meets business RTO/RPO requirements.
+
+<CodeGroup>
+```bash Claude Code
+claude "Write a DR plan for our production system. We run on a single VPS with MySQL, daily automated backups to object storage, no secondary region, and no replica database. Extended downtime and data loss are both expensive for us, but we've never tested a full restore."
+```
+
+```bash Gemini CLI
+gemini "Write a DR plan for our production system. We run on a single VPS with MySQL, daily automated backups to object storage, no secondary region, and no replica database. Extended downtime and data loss are both expensive for us, but we've never tested a full restore."
+```
+
+```bash Generic / npx
+npx engineering-docs disaster-recovery-plan "production payment system"
+```
+</CodeGroup>
+
+## Example scenarios
+
+<Accordion title="Regional outage planning">
+  `Write a disaster recovery plan in case our primary hosting provider has a regional outage`
+
+  Produces a DR tier assessment, a warm-standby architecture recommendation, and a step-by-step regional failover runsheet covering DNS TTL strategy, database promotion, traffic rerouting, and data integrity validation.
+</Accordion>
+
+<Accordion title="Payment ledger RTO/RPO definition">
+  `Define RTO and RPO targets for our payment ledger database and the backup strategy needed to hit them`
+
+  Produces a Business Impact Analysis that quantifies the hourly cost of downtime and data loss, sets RTO/RPO targets backed by that cost, maps the gap between current backup frequency and the required RPO, and recommends the backup architecture to close it.
+</Accordion>
+
+<Accordion title="Backup validation and drill schedule">
+  `We've never actually tested restoring from backup — help me build a DR plan and drill schedule that fixes that`
+
+  Produces a live restore drill procedure, a quarterly tabletop exercise template, a drill log table, and the action items needed to verify the current backup strategy before the first drill date.
+</Accordion>
+
+## Key concepts
+
+### RTO vs. RPO
+
+| Target | Definition | Question it answers |
+|:---|:---|:---|
+| **RTO** | Maximum acceptable downtime before business impact becomes unacceptable | How long can we be down? |
+| **RPO** | Maximum acceptable data loss, measured in time | How much data can we afford to lose? |
+
+These are business decisions with a cost curve attached — lower RTO/RPO requires more expensive infrastructure. The skill works backward from business need to infrastructure requirements, not the other way around.
+
+### DR tiers
+
+| Tier | Strategy | Typical RTO | Typical RPO | Relative cost |
+|:---|:---|:---|:---|:---|
+| **Tier 0** | Backup only, manual restore | Hours to days | Backup interval | Lowest |
+| **Tier 1** | Backup + documented + tested restore | Hours | Backup interval | Low |
+| **Tier 2** | Warm standby (replica, not serving traffic) | Minutes to 1 hour | Near-zero to minutes | Medium |
+| **Tier 3** | Hot standby / active-active multi-region | Seconds to minutes | Near-zero | High |
+
+Not every system needs Tier 3. The skill maps each system's actual business criticality to the cheapest tier that meets its RTO/RPO — a Tier 3 admin dashboard is over-engineering; a Tier 0 payment ledger is a liability.
+
+### The 3-2-1 backup rule
+
+Keep **3** copies of data, on **2** different media/storage types, with **1** copy off-site (different provider or region than production). A single provider's snapshot feature alone does not satisfy this rule — a provider-wide outage or account compromise takes the snapshot with it.
+
+### Named disaster scenarios
+
+A DR plan must address specific scenarios, not just "something bad happens":
+
+- **Regional/provider-wide infrastructure outage** — DR runsheet: Section 8.1
+- **Data corruption or accidental mass deletion** — DR runsheet: Section 8.2
+- **Ransomware / malicious encryption of production data** — DR runsheet: Section 8.3
+- **Critical third-party dependency loss** — DR runsheet: Section 8.4
+- **DNS failover** — DR runsheet: Section 8.5
+
+### Ransomware-specific procedures
+
+Ransomware requires distinct procedures beyond generic data corruption recovery. The skill enforces isolation first — before any recovery attempt, affected systems are disconnected from the network to prevent lateral spread. It identifies the most recent verified-clean backup (backups taken during the compromise window may also be encrypted), requires forensic preservation before wiping, and mandates full credential rotation before reconnecting. The ransom payment policy and legal/regulatory notification requirements are documented explicitly.
+
+### Data integrity validation
+
+After any recovery, the plan requires structured validation before declaring recovery complete: row count verification against known-good baselines, file checksum comparison, referential integrity checks for orphaned records, and application-level smoke tests covering critical user journeys. An automated validation script (`scripts/dr-validation.sh`) captures all checks in a single pass/fail report.
+
+### Drills are the real test
+
+A DR plan is a hypothesis until it has been drilled. The skill schedules recovery drills on a fixed cadence and treats any drill failure as more urgent than the document itself. Every drill result — pass or fail — is logged, and every gap found becomes an action item with an owner and deadline.
+
+## Interview process
+
+The agent conducts a structured interview before drafting, loading prior `.engineering-docs/` files first to avoid re-asking known facts:
+
+<Steps>
+  <Step title="Context loading">
+    Reads existing documents (business-plan, system-architecture, deployment-plan, SLO document) to extract hosting infrastructure, known uptime requirements, and existing backup tooling.
+  </Step>
+  <Step title="Backup reality check (≤ 2–3 questions)">
+    Confirms what is actually backed up today, how often, where backups are stored, and critically — whether a full restore has ever been tested.
+  </Step>
+  <Step title="Business tolerance">
+    In concrete terms: how many hours of downtime and how much data loss would be damaging-but-survivable versus catastrophic for this business?
+  </Step>
+  <Step title="Business impact analysis">
+    Identifies every critical component, classifies its criticality tier, and states the cost of downtime and data loss in concrete terms.
+  </Step>
+  <Step title="RTO/RPO target setting">
+    Sets explicit RTO/RPO per system, driven by the BIA — not by what current infrastructure happens to provide.
+  </Step>
+  <Step title="Backup and replication strategy">
+    Designs the backup/replication architecture required to hit each RPO, applies the 3-2-1 rule, and documents encryption and retention.
+  </Step>
+  <Step title="Failover runsheets and drill schedule">
+    Writes the numbered runsheet per scenario and sets the recurring drill cadence with the first drill scheduled before the plan is marked Approved.
+  </Step>
+</Steps>
+
+## Output structure
+
+The generated `.engineering-docs/18-disaster-recovery.md` mirrors the full template:
+
+```markdown title="18-disaster-recovery.md (structure)"
+# Disaster Recovery & Business Continuity Plan
+
+## 1. Executive Summary
+## 2. Business Impact Analysis          ← cost of downtime/data loss per system
+## 3. DR Tier Assignment                ← cheapest tier that meets each RTO/RPO
+## 4. Disaster Scenario Catalog         ← named scenarios, detection, declaration
+## 5. Backup Strategy
+  ### 5.1 Backup Inventory              ← 3-2-1 compliance check per data set
+  ### 5.2 Known Gaps
+## 6. Recovery Priority Sequence        ← dependency-ordered recovery list
+## 7. Cost Modeling                     ← monthly cost vs. break-even analysis
+## 8. Failover and Recovery Runsheets
+  ### 8.1 Regional / Provider Outage
+  ### 8.2 Data Corruption / Mass Deletion
+  ### 8.3 Ransomware / Malicious Encryption
+  ### 8.4 Critical Third-Party Dependency Loss
+  ### 8.5 DNS Failover
+  ### 8.6 Data Integrity Validation (Post-Recovery)
+## 9. Backup Encryption Key Management  ← key inventory, access, escrow
+## 10. Communication Plan               ← internal and external notification
+## 11. Drill Log and Validation
+  ### 11.2 Tabletop Exercise Template
+## 12. Compliance Mapping               ← PCI-DSS, SOC 2, ISO 22301
+```
+
+## Handoff
+
+<CardGroup cols={2}>
+  <Card title="Reads from" icon="arrow-down">
+    - `1-business-plan.md` — business impact of downtime, revenue exposure
+    - `7-system-architecture.md` — infrastructure topology, single points of failure
+    - `16-deployment-plan.md` — current deployment and rollback procedures
+    - `19-slo-error-budget.md` — RTO/RPO alignment with SLO commitments
+  </Card>
+  <Card title="Feeds into" icon="arrow-up">
+    - `17-technical-runbook.md` — recovery procedures referenced during incidents
+    - Compliance documentation (PCI-DSS, SOC 2, ISO 22301)
+    - Incident postmortems — DR gaps discovered during incidents
+  </Card>
+</CardGroup>
+
+## Quality gate
+
+Before marking the plan `final`, verify every item in this checklist:
+
+- [ ] Every critical system has explicit RTO and RPO targets derived from business impact analysis, not from current infrastructure capability
+- [ ] The backup strategy for each system satisfies the 3-2-1 rule (3 copies, 2 media types, 1 off-site with a different provider)
+- [ ] Every disaster scenario in the catalog has a corresponding recovery runsheet with numbered steps, owners, and estimated times
+- [ ] At least one recovery drill (tabletop or live restore) is scheduled before the plan is marked `Approved`, and the drill log table exists
+- [ ] The communication plan defines internal and external notification responsibilities at each stage
+- [ ] Ransomware-specific recovery procedures are documented, including isolation steps and forensic preservation
+- [ ] Data integrity validation procedures (row counts, checksums, referential integrity, smoke tests) are documented for post-recovery verification
+- [ ] Cost modeling is presented per DR tier, showing the cost/downtime trade-off
+- [ ] Recovery priority ordering is defined based on BIA, with dependency mapping
+- [ ] DNS failover strategy is documented (TTL, global LB routing, CDN failover behavior)
+- [ ] Backup encryption key management is documented (storage, rotation, access control, KMS backup/escrow)
+- [ ] Third-party dependency DR is addressed (inventory, impact, fallback, provider DR review)
+
+<Warning>
+**A backup that has never been restored is not a backup — it is an unverified assumption.** The quality gate explicitly requires at least one scheduled drill before the plan is marked Approved. A DR plan with an empty drill log is a plan that has never been tested.
+</Warning>

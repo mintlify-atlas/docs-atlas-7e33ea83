@@ -1,0 +1,292 @@
+---
+title: "deployment-plan skill: release strategy, go/no-go gate, and rollback procedure"
+sidebarTitle: "Deployment Plan"
+description: "Invoke the deployment-plan skill to produce a production deployment runsheet covering release strategy, go/no-go checklist, monitoring plan, rollback steps, and sign-off."
+---
+
+The `deployment-plan` skill transforms a production deployment from a high-anxiety event into a controlled, repeatable, and reversible procedure. For any service release or infrastructure change, it selects the right deployment strategy — Direct, Rolling, Blue-Green, Canary, or Feature Flag — based on your risk profile and infrastructure, writes the step-by-step execution runsheet with exact commands, defines measurable go/no-go criteria, specifies post-deployment monitoring thresholds, and documents the complete rollback procedure before a single step is executed. This is an always-core skill: DORA research shows that organisations with documented deployment plans deploy more frequently and recover more quickly from failures.
+
+<Info>
+  **Type:** Workflow &nbsp;·&nbsp; **Estimated time:** 2–4 hours &nbsp;·&nbsp; **Standards:** DORA metrics, ITIL change management, blue-green/canary deployment patterns &nbsp;·&nbsp; **Output file:** `16-deployment-plan.md` &nbsp;·&nbsp; **Inclusion:** Always-core — every non-trivial production release
+</Info>
+
+## Best for
+
+<CardGroup cols={2}>
+  <Card title="New service production deployment" icon="server">
+    Document exactly how a brand-new service will land in production, including environment specs, pipeline steps, and first-deploy verification.
+  </Card>
+  <Card title="Major feature release runsheet" icon="file-lines">
+    Produce the step-by-step execution guide for a high-risk feature release — especially one that includes database migrations.
+  </Card>
+  <Card title="Standard deployment runsheet" icon="clipboard-list">
+    Establish the reusable deployment procedure for a service that deploys frequently, so every release follows the same verified sequence.
+  </Card>
+  <Card title="High-risk migration or infrastructure change" icon="triangle-exclamation">
+    Plan database schema changes, runtime upgrades, or IaC changes where the blast radius requires explicit pre-flight verification and a tested rollback.
+  </Card>
+</CardGroup>
+
+## What it produces
+
+The skill outputs `16-deployment-plan.md`, a document read by the deployment engineer, the on-call responder, and post-incident reviewers:
+
+- **Release summary** — what is being deployed (code / DB migration / config / infra), motivation, deployment freeze status, overall risk assessment
+- **IaC and multi-service coordination sections** — `terraform plan` review checklist, DNS TTL pre-lowering steps, deployment dependency DAG for multi-service releases
+- **Deployment strategy selection** — chosen strategy with rationale; Mermaid strategy diagram; for Canary: full promotion criteria table with metric thresholds, comparison tool, and promotion authority
+- **Pre-deployment go/no-go checklist** — every criterion must be checked before a single deployment step begins; binary pass/fail gate
+- **Environment specifications** — production component inventory and full deployment pipeline diagram
+- **Execution runsheet** — numbered, checkbox-driven steps from T−30 min through go-live, covering pre-deployment, database migrations (with ordering rules), application deployment, container/Kubernetes/ECS variants, smoke tests, and feature flag activation
+- **Monitoring plan** — key metrics table with baseline, alert threshold, and action; dashboard links; 30-minute post-deployment observation log
+- **Post-deployment verification automation** — synthetic monitoring, canary analysis, automated rollback triggers
+- **Rollback plan** — numbered rollback steps, estimated rollback time, rollback triggers, decision authority (no approval required), data loss assessment
+- **Communication plan** — who gets notified, on which channel, with what message, at which event
+- **Post-deployment sign-off** — deployment lead signature block
+
+## How to invoke it
+
+<CodeGroup>
+```bash Claude Code
+claude "deployment-plan [service or release name]"
+
+# Examples:
+claude "deployment-plan releasing the new webhook delivery system to production"
+claude "deployment-plan blue-green deployment for upgrading PHP runtime from 8.1 to 8.3"
+claude "deployment-plan database migration adding 3 new tables to checkout service"
+```
+
+```bash Gemini CLI
+gemini "deployment-plan [service or release name]"
+
+# Examples:
+gemini "deployment-plan releasing the new webhook delivery system to production"
+gemini "deployment-plan blue-green deployment PHP 8.1 to 8.3 upgrade"
+```
+
+```bash Generic (any agent)
+npx engineering-docs deployment-plan "[service or release name]"
+```
+</CodeGroup>
+
+<Tip>
+  Include key risk factors in your invocation: whether the release includes database migrations (additive or destructive), the downtime tolerance, and the deployment toolchain in use. For example: `deployment-plan PayFlow v2.4.0 — 3 additive DB migrations, new queue worker, PHP-FPM on a single server, zero downtime required`.
+</Tip>
+
+## Example scenarios
+
+| Invocation | Key decisions made |
+|:---|:---|
+| `deployment-plan new webhook delivery system` | Canary strategy selected for new queue worker; migration runs before code deploy; HMAC signing verified in smoke test |
+| `deployment-plan blue-green deployment PHP 8.1 to 8.3 upgrade` | Blue-Green strategy; staging validation gate; old environment held on standby for 48h before decommission |
+| `deployment-plan database migration adding 3 new tables` | Direct deploy with pre-migration backup; additive schema runs before application code; old code + new schema smoke test included |
+
+## Key concepts
+
+### Deployment strategy decision matrix
+
+The skill selects one of five strategies based on risk tolerance, downtime tolerance, and infrastructure capability:
+
+| Risk level | Downtime OK? | Infrastructure | Recommended strategy |
+|:---|:---|:---|:---|
+| Low | Yes | Single server | **Direct Deploy** — replace code in-place |
+| Low | No | Multiple instances | **Rolling Deploy** — update one instance at a time |
+| Medium | No | Load balancer available | **Blue-Green** — switch traffic after full validation |
+| High | No | Load balancer + metrics pipeline | **Canary** — route small % first, promote on metrics |
+| Any | No | Feature flag system in place | **Feature Flag** — decouple deploy from release |
+| High | No | Kubernetes / ECS | **Canary with pod-level rollback** |
+
+<Warning>
+  When risk is high and downtime is unacceptable but the infrastructure for a safe deployment strategy doesn't exist yet, the right answer is to invest in the infrastructure first — not to paper over the gap with manual vigilance during the deployment window.
+</Warning>
+
+### Canary deployment and promotion criteria
+
+For canary deployments, the strategy definition includes the full promotion ladder before the deployment window opens:
+
+| Stage | Traffic % | Duration | Auto-promote? | Auto-rollback? |
+|:---|:---|:---|:---|:---|
+| Initial canary | 5% | 15 min | No — manual review | Yes — on threshold breach |
+| Expanded canary | 25% | 30 min | No — manual review | Yes — on threshold breach |
+| Full rollout | 100% | — | N/A | N/A |
+
+Comparison thresholds are defined against measurable baselines:
+
+| Metric | Threshold | Tool | Rollback trigger |
+|:---|:---|:---|:---|
+| Error rate delta | Canary must not exceed baseline by > 0.5% | Prometheus / Datadog | Automatic |
+| p99 latency delta | Canary p99 must not exceed baseline by > 100 ms | Prometheus / Datadog | Automatic |
+| Business metric (e.g., payment success rate) | Must not drop below 97% | Custom dashboard | Automatic |
+
+### Go/no-go gate
+
+Every deployment plan includes a binary go/no-go checklist. All items must be checked before deployment begins — this is not optional, and no single item can be skipped with a "we'll deal with it after":
+
+- Release code-reviewed and approved by at least one senior engineer
+- All automated tests pass on the release branch (CI green)
+- Release deployed to staging and smoke-tested (date and tester named)
+- Database backup verified (taken and confirmed restorable)
+- Rollback procedure reviewed and tested on staging
+- On-call engineer confirmed available for the full deployment window
+- Monitoring dashboards accessible
+- Feature flags set to `OFF` for any flag-based features
+
+### Database migration ordering rule
+
+The skill enforces a critical sequence for database migrations:
+
+- **Additive migrations (new tables, new nullable columns)** — run **before** new application code deploys. Old code still works with the new schema, new code works with it too. If the deploy fails, roll back the code; the schema change is harmless.
+- **Destructive or breaking migrations** — require a multi-phase migration strategy across multiple deployments, never a single deploy. The skill flags this and designs the appropriate sequence.
+
+<Warning>
+  Running a backward-incompatible database migration after the new application code is deployed is the most common cause of deployment-window incidents. The runsheet enforces the correct ordering by design.
+</Warning>
+
+### IaC and infrastructure changes
+
+When the deployment includes Terraform, Pulumi, CloudFormation, or CDK changes, the plan applies the same rigour as application code:
+
+- `terraform plan` output reviewed and matched to expected changes before `apply`
+- Blast radius assessed: new resources created vs. resources modified vs. resources destroyed (destroying and recreating a database is not the same as updating a security group rule)
+- Remote state lock confirmed for the deployment window
+- IaC-specific rollback steps documented (infrastructure rollbacks often require another `apply`, not a symlink swap)
+- Configuration drift checked before the window opens
+
+For DNS changes: TTL is lowered to 60–300 seconds at least 24 hours before the deployment window. Certificates are verified to not expire within 30 days.
+
+### Monitoring plan and post-deployment verification
+
+The plan specifies 30 minutes of active monitoring after smoke tests pass, with a log table filled every 10 minutes:
+
+| Metric | Baseline | Alert threshold | Action |
+|:---|:---|:---|:---|
+| HTTP 5xx error rate | < 0.1% | > 1% sustained 2 min | Begin rollback |
+| p99 API response time | < 200 ms | > 500 ms sustained 2 min | Begin rollback |
+| Business metric (e.g., payment success) | > 98% | < 95% for 5 min | Begin rollback |
+| Queue job failure rate | < 0.1% | > 5% | Investigate; pause queue |
+
+Post-deployment verification automation runs synthetic user journeys every few minutes — tools like Checkly or Datadog Synthetics — so a slow-burn regression is caught before the deployment lead closes their laptop.
+
+### DORA metrics — what good looks like
+
+The skill is informed by DORA research on high-performing engineering teams:
+
+| DORA metric | Elite performance target |
+|:---|:---|
+| Deployment frequency | Multiple times per day |
+| Lead time for change | Commit to production in < 1 hour |
+| Change failure rate | < 5% of deployments cause failures |
+| Mean time to restore (MTTR) | < 1 hour to recover from a failure |
+
+A written deployment plan — with a tested rollback — is the single highest-leverage change a team can make to improve MTTR.
+
+## Interview process
+
+The skill reads all prior `.engineering-docs/` documents first (business plan for uptime requirements, architecture for infrastructure topology, test strategy for CI gates, implementation plan for migration requirements). It then asks a maximum of **2–3 targeted questions** via tool calls:
+
+| Phase | Duration | What happens |
+|:---|:---|:---|
+| **Phase 1** | Pre-start | Reads existing architecture, test strategy, implementation plan, and business plan for uptime/SLA requirements |
+| **Interview** | Interactive | Two questions: current deployment workflow (GitHub Actions, Ansible, manual rsync) and downtime tolerance (any brief interruption acceptable vs. zero-downtime mandatory) |
+| **Phase 2** | 60–90 min | Strategy selection, runsheet generation, go/no-go criteria, rollback procedure design |
+| **Phase 3** | After review | Applies feedback; re-checks that rollback steps still match the architecture's infrastructure; updates metadata |
+
+## Output structure
+
+<Accordion title="Full document section map">
+
+| # | Section | Contents |
+|:---|:---|:---|
+| 1 | Release Summary | What is deployed (type, description, risk per item); motivation; deployment freeze check; overall risk assessment; IaC changes checklist; multi-service deployment order DAG |
+| 2 | Deployment Strategy | Chosen strategy with rationale; Mermaid strategy diagram; Canary promotion criteria and comparison thresholds (if applicable) |
+| 3 | Prerequisites and Go/No-Go | Full pre-deployment checklist; binary GO / NO-GO decision with authoriser and timestamp |
+| 4 | Environment Specifications | Production component inventory table; deployment pipeline diagram |
+| 5 | Execution Runsheet | Pre-deployment (T−30 min), DB migrations, application deployment, container/K8s/ECS variants, post-deployment smoke test, go-live completion — all as numbered checkboxes with exact commands |
+| 6 | Monitoring Plan | Key metrics table with baseline, alert threshold, and action; dashboard links; 30-min observation log table; post-deployment verification automation |
+| 7 | Rollback Plan | Rollback triggers; decision authority; numbered rollback steps with exact commands; estimated rollback time; data loss assessment per scenario |
+| 8 | Communication Plan | Audience × channel × message × timing |
+| 9 | Post-Deployment Sign-off | Completion, smoke test, monitoring, rollback-required status table; deployment lead signature |
+
+</Accordion>
+
+### Execution runsheet structure
+
+The runsheet uses numbered, checkbox-driven steps so any engineer can execute it without additional context. Each step is a complete, verifiable action:
+
+```markdown
+- [ ] 5.1.3  Take database backup:
+      ```bash
+      # Backup location: [path / S3 bucket]
+      # Backup verified: [Y/N]
+      ```
+
+- [ ] 5.2.1  Run migration before application code deploy:
+      ```bash
+      php artisan migrate --step
+      ```
+
+- [ ] 5.4.1  Health check endpoint returns 200:
+      ```bash
+      curl -f https://[domain]/health
+      # Expected: {"status": "ok", "version": "X.Y.Z"}
+      ```
+```
+
+## Handoff
+
+**Reads from:**
+
+| Document | What it consumes |
+|:---|:---|
+| `1-business-plan.md` | Business constraints and uptime/SLA requirements |
+| `5-technical-specification.md` | Performance and reliability requirements |
+| `7-system-architecture.md` | Infrastructure topology, tech stack, component inventory |
+| `15-test-strategy.md` | CI gates that must pass before deployment proceeds |
+| `14-implementation-plan.md` | Feature scope, migration requirements, phase completion status |
+
+**Feeds into:**
+
+| Document | What it provides |
+|:---|:---|
+| `17-technical-runbook.md` | Post-deployment monitoring and incident response procedures |
+| `18-disaster-recovery.md` | Infrastructure context for failover planning |
+| `19-slo-error-budget.md` | Deployment impact on reliability targets and error budgets |
+
+## Quality gate
+
+Before marking the document `final`, the agent verifies eleven gates:
+
+<Steps>
+  <Step title="Rollback procedure is complete with numbered steps, estimated time, and staging test">
+    The rollback plan must be written, reviewed, and tested on staging before the deployment window opens. An untested rollback is not a rollback plan.
+  </Step>
+  <Step title="Every go/no-go criterion is measurable and binary">
+    Each criterion is a pass/fail check. "Looks good" and "seems stable" are not criteria. "CI green on release branch" and "health endpoint returns HTTP 200 with version X.Y.Z" are criteria.
+  </Step>
+  <Step title="Execution runsheet includes exact commands">
+    Every step has the exact command to run, not a description of what to do. The runsheet must be executable by an on-call engineer at 2 a.m. without additional context.
+  </Step>
+  <Step title="Monitoring thresholds are specific numeric values">
+    Error rate threshold, latency threshold, and business metric threshold all have numeric values and defined observation windows, not qualitative descriptions.
+  </Step>
+  <Step title="Deployment lead and on-call backup are both named and confirmed available">
+    Two named people are confirmed available for the deployment window before the plan is approved.
+  </Step>
+  <Step title="Container deployments: immutable image tag, resource limits, probes verified">
+    If deploying to Kubernetes or ECS: image uses a version-pinned tag (not `latest`), CPU/memory limits are defined, and readiness/liveness probe compatibility with the new image is confirmed.
+  </Step>
+  <Step title="Canary deployments: promotion criteria defined with metric thresholds">
+    If using Canary: every promotion stage has specific metric thresholds, a comparison tool or dashboard, and a defined promotion authority (automated or named human).
+  </Step>
+  <Step title="Multi-service deployments: dependency order and rollback coordination defined">
+    If spanning multiple services: the deployment dependency DAG is drawn, backward compatibility window is specified, and coordinated rollback order is documented.
+  </Step>
+  <Step title="IaC changes: terraform plan reviewed, blast radius assessed">
+    If including infrastructure changes: `terraform plan` output is reviewed and confirmed to match expected changes; no unintended resource destruction.
+  </Step>
+  <Step title="DNS/TLS changes: TTL pre-lowered, certificates verified">
+    If DNS records are changing: TTL was lowered at least 24 hours before the window. No certificate in the deployment chain expires within 30 days.
+  </Step>
+  <Step title="Deployment freeze windows checked">
+    No scheduled freeze is active, or an explicit exception has been authorised by the named authority. The freeze check is included in the release summary.
+  </Step>
+</Steps>
