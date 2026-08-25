@@ -1,7 +1,7 @@
 ---
-title: "technical-specification skill: ISO/IEC/IEEE 29148 requirements with EARS syntax"
+title: "Technical Specification Skill: SRS/TSD with EARS Syntax"
 sidebarTitle: "Tech Specification"
-description: "Generate a complete SRS/TSD with SMART requirements in EARS syntax, FR/NFR coverage, traceability matrix, and acceptance criteria aligned to ISO/IEC/IEEE 29148."
+description: "Write a complete SRS/TSD with SMART requirements in EARS syntax, FR/NFR coverage, traceability matrix, and acceptance criteria per ISO/IEC/IEEE 29148."
 ---
 
 The `technical-specification` skill produces a complete Software Requirements Specification (SRS) or Technical Specification Document (TSD) — the contract between business stakeholders and the engineering team. It transforms stakeholder intent into unambiguous, verifiable engineering requirements before a single line of architecture or code is written, preventing the most expensive class of software defect: building the wrong thing correctly.
@@ -14,7 +14,7 @@ The `technical-specification` skill produces a complete Software Requirements Sp
   | **Type** | Workflow |
   | **Estimated time** | 6–12 hours |
   | **Standard** | ISO/IEC/IEEE 29148:2018 |
-  | **Output file** | `4-technical-specification.md` |
+  | **Output file** | `5-technical-specification.md` |
   | **Argument hint** | `[system or feature name]` |
 </Info>
 
@@ -114,7 +114,7 @@ Every requirement must be written using **EARS (Easy Approach to Requirements Sy
     Where the merchant's account is in sandbox mode, the system shall not
     charge real payment instruments.
 
-    Where the request includes an Idempotency-Key header, the system shall
+    Where the request includes an `Idempotency-Key` header, the system shall
     return the cached response for duplicate keys within 24 hours.
     ```
 
@@ -126,11 +126,11 @@ Every requirement must be written using **EARS (Easy Approach to Requirements Sy
     Applies continuously while a system is in a defined state.
 
     ```text
-    While the delivery status is "retrying", the system shall apply
+    While the delivery status is `retrying`, the system shall apply
     exponential backoff with jitter between attempts.
 
     While the system is in maintenance mode, the API shall return HTTP 503
-    with a Retry-After header.
+    with a `Retry-After` header.
     ```
 
     Use for ongoing behaviors that persist for the duration of a state.

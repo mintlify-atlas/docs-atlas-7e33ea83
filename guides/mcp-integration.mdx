@@ -1,7 +1,7 @@
 ---
-title: "Integrate Engineering Docs with MCP for programmatic document validation"
+title: "Use Engineering Docs MCP server for document validation"
 sidebarTitle: "MCP Integration"
-description: "How the Engineering Docs MCP server exposes validate_document_set, check_consistency, and generate_index tools to any MCP-compatible client or CI pipeline."
+description: "How the Engineering Docs MCP server exposes validate_document_set, check_consistency, and generate_index to MCP-compatible clients and CI pipelines."
 ---
 
 Engineering Docs ships a minimal **MCP (Model Context Protocol) server** that exposes three programmatic tools for working with your `.engineering-docs/` folder: validating document completeness, checking cross-document consistency, and regenerating the master index. The server runs as a Node.js process communicating over stdio and is compatible with any MCP-capable client — including Claude Code, Cursor, and custom agent harnesses.
@@ -254,14 +254,14 @@ The script checks for a `.engineering-docs/` folder in the current working direc
 [engineering-docs] Documentation in progress for this project:
   - 12 document(s) in the index
   - 2 item(s) still in draft or in-progress status:
-    > 11-security-threat-model.md | draft | false | 2025-01-14
-    > 14-implementation-plan.md | in-progress | false | 2025-01-14
+    > 11-security-threat-model.md draft false 2025-01-14
+    > 14-implementation-plan.md in-progress false 2025-01-14
 
   To continue, invoke the engineering-docs orchestrator — it will
   read the existing index and resume from where you left off.
 ```
 
-If no `.engineering-docs/` folder exists, or if all documents are final, the script exits silently — no noise when there's nothing to report.
+If no `.engineering-docs/` folder exists, the script exits silently. If the folder exists but has no `index.md`, it prints a prompt to run the orchestrator. If all documents are final with no draft or in-progress items, the script also exits silently — no noise when there's nothing to report.
 
 ---
 

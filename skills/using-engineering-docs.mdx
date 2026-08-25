@@ -1,7 +1,7 @@
 ---
-title: "using-engineering-docs: the Engineering Docs orchestrator skill"
+title: "using-engineering-docs: AI doc pipeline orchestrator"
 sidebarTitle: "Orchestrator"
-description: "The entry-point skill that takes a raw project idea, decides which of the 22 skills apply, and drives the full documentation pipeline end to end without you naming a single skill."
+description: "Entry-point skill that takes a raw project idea, decides which of the 22 skills apply, and drives the full doc pipeline without you naming a single skill."
 ---
 
 The `using-engineering-docs` skill is the master orchestrator for the Engineering Docs plugin. Give it a project idea in any form — a one-liner, a messy paragraph, a half-formed concept — and it takes over: runs a structured discovery conversation, decides which of the 21 specialist document skills apply and in what order, then executes that sequence one skill at a time until a complete, cross-consistent document set is ready for a coding agent or a human engineer to build from. You never need to know a skill's name, a template's structure, or the right order to generate documents.
@@ -148,7 +148,7 @@ Before asking a single question, the orchestrator determines which mode it is op
 | 2.5 | `ux-flow-specification` | User journeys, screen-by-screen flow, every UI state | Conditional — skip only for a pure backend/API-only project with no UI |
 | 3 | `system-architecture-document` | Overall structure — diagrams, tech stack, NFRs | **Always** |
 | 3+ | `architecture-decision-record` | One immutable record per significant decision | Ad hoc — created throughout, not as a single upfront document |
-| 4 | `database-design-document` | ERD, schema, indexing, migration plan | Conditional — skip only if the project has no structured data to persist |
+| 4 | `database-design-document` | ERD, schema, indexing, migration plan | Conditional — skip only if the project genuinely has no structured data to persist |
 | 5 | `api-design-document` | API contract, resources, auth, versioning | Conditional — include if there's any internal or external API surface |
 | 5.5 | `admin-access-control-specification` | Roles, permission matrix, audit logging, break-glass access | Conditional — include as soon as there is more than one privilege level |
 | 6 | `security-threat-model` | STRIDE-based threat model and risk register | Conditional — include whenever the project handles accounts, payments, PII, or any external attack surface |
@@ -180,6 +180,7 @@ These are shortcut thoughts the orchestrator must never act on:
 | "This document looks good enough, I'll move on" | Quality gates exist for a reason. |
 | "I remember the skill, I don't need to read it" | Skills evolve. Always read the current SKILL.md before invoking. |
 | "I'll just generate the template without the interview" | The interview produces the content. The template is just the structure. |
+| "I'll ask inline in the conversation" | Use tool calls for interviews. Inline questions pollute conversation context and force users to type responses. |
 
 ## Output Structure
 

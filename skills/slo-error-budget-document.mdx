@@ -1,7 +1,7 @@
 ---
-title: "slo-error-budget-document skill: SLI/SLO targets and burn-rate alerts"
+title: "SLO & Error Budget Document — SLI targets and burn-rate"
 sidebarTitle: "SLO & Error Budget"
-description: "Turn vague reliability goals into measurable SLI/SLO targets, a pre-agreed error budget policy, and multi-window burn-rate alerts that page on-call at the right urgency level."
+description: "Define SLI/SLO targets, error budgets, and multi-window burn-rate alerts with a pre-agreed budget policy that replaces reliability debates with data."
 ---
 
 The `slo-error-budget-document` skill produces a rigorous SLO document that turns "the service should be reliable" into a specific, measurable, and enforceable contract. Every other reliability artifact in the engineering-docs suite — the runbook, the deployment plan, the postmortem — references an SLA/SLO without defining one; this skill is where that number comes from, how it is justified, and what happens when it is breached. An SLO without an error budget policy is just a wish: this skill applies Google SRE Workbook principles to give it teeth.
@@ -164,7 +164,9 @@ The generated `.engineering-docs/19-slo-error-budget.md` mirrors the full templa
 ```markdown title="19-slo-error-budget.md (structure)"
 # SLO & Error Budget Document
 
-## 1. Overview & Critical User Journeys
+## 1. Overview
+  ### 1.1 Purpose
+  ### 1.2 Critical User Journeys
 ## 2. Service Level Indicators (SLIs)
   ### 2.1 SLI Implementation (Monitoring Queries)
       — Prometheus PromQL + Datadog metric per SLI

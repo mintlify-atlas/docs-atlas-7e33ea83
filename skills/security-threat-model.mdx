@@ -1,13 +1,13 @@
 ---
-title: "security-threat-model skill: STRIDE analysis, attack surface, and mitigations"
+title: "security-threat-model: STRIDE analysis and risk register"
 sidebarTitle: "Threat Model"
-description: "Invoke the security-threat-model skill to produce a structured STRIDE threat model, DFD trust boundaries, risk register, and concrete mitigations before code ships."
+description: "Produce a structured STRIDE threat model with DFD trust boundaries, risk register, and concrete mitigations before code ships. Conditional skill."
 ---
 
 The `security-threat-model` skill guides your AI coding agent through a full adversarial security review of any feature, service, or integration. Starting from a Data Flow Diagram and trust boundary map, it systematically applies the STRIDE framework — Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege — to every component and data flow, scores each threat by probability and impact, and produces a prioritised risk register with specific, implementable mitigations. The output is an action-oriented security document, not a theoretical audit: every control is precise enough for an engineer to implement directly.
 
 <Info>
-  **Type:** Workflow &nbsp;·&nbsp; **Estimated time:** 4–8 hours &nbsp;·&nbsp; **Standards:** Microsoft STRIDE, OWASP Top 10, CVSS risk scoring &nbsp;·&nbsp; **Output file:** `12-security-threat-model.md` &nbsp;·&nbsp; **Inclusion:** Conditional — include when the system handles authentication, payments, PII, or any external attack surface
+  **Type:** Workflow &nbsp;·&nbsp; **Estimated time:** 4–8 hours &nbsp;·&nbsp; **Framework:** Microsoft STRIDE &nbsp;·&nbsp; **Output file:** `12-security-threat-model.md` &nbsp;·&nbsp; **Inclusion:** Conditional — include when the system handles authentication, payments, PII, or any external attack surface
 </Info>
 
 ## Best for
@@ -193,7 +193,7 @@ The generated document (`12-security-threat-model.md`) follows this section orde
 |:---|:---|
 | `13-design-system-specification.md` | Security UX requirements — auth flows, safe error states |
 | `14-technical-blueprint.md` | Security requirements and mitigations to incorporate into feature designs |
-| `15-implementation-plan.md` | Security controls to sequence into build phases |
+| `14-implementation-plan.md` | Security controls to sequence into build phases |
 
 ## Quality gate
 

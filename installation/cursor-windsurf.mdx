@@ -1,7 +1,7 @@
 ---
 title: "Install Engineering Docs in Cursor and Windsurf"
 sidebarTitle: "Cursor & Windsurf"
-description: "Add 22 engineering documentation skills to Cursor or Windsurf as project-scoped .mdc rules — one rule file per skill, installed to .cursor/rules/ in seconds."
+description: "Add 22 engineering documentation skills to Cursor or Windsurf as project-scoped .mdc rules — one file per skill, installed to .cursor/rules/ in seconds."
 ---
 
 Engineering Docs uses Cursor's native rules system to deliver all 22 skills. Instead of a monolithic plugin file, the installer extracts each `SKILL.md` into its own `.mdc` rule file — giving Cursor's context engine fine-grained control over when each skill is applied. Windsurf reads the same `.cursor/rules/` directory, so one install command covers both editors.
@@ -23,7 +23,7 @@ Engineering Docs uses Cursor's native rules system to deliver all 22 skills. Ins
 
   <Step title="Confirm the rule files were created">
     The installer prints one confirmation line per skill as it copies each file:
-    ```
+    ```text
       created  Cursor rule: engineering-docs-using-engineering-docs.mdc
       created  Cursor rule: engineering-docs-business-concept.mdc
       created  Cursor rule: engineering-docs-project-plan.mdc
@@ -45,7 +45,7 @@ Engineering Docs uses Cursor's native rules system to deliver all 22 skills. Ins
 
 The `--cursor` flag runs a special install path in `scripts/install.js`. For every subdirectory in `skills/`, it reads the `SKILL.md` file and copies it to `.cursor/rules/` with a prefixed filename:
 
-```
+```text
 .cursor/rules/
 ├── engineering-docs-using-engineering-docs.mdc
 ├── engineering-docs-business-concept.mdc
@@ -102,7 +102,7 @@ The repository also ships a `plugin.json` at `integrations/plugins/.cursor-plugi
 {
   "name": "engineering-docs",
   "displayName": "Engineering Documentation",
-  "description": "22 engineering documentation skills covering the complete software lifecycle.",
+  "description": "22 engineering documentation skills covering the complete software lifecycle: business concept, project planning, personas, specs, feasibility, UX flow, architecture, design system, API, database, ADR, access control, security, testing, implementation, deployment, SLO, operations, disaster recovery, and incident review.",
   "version": "1.2.1",
   "author": {
     "name": "Fattain Naime",
@@ -111,6 +111,18 @@ The repository also ships a `plugin.json` at `integrations/plugins/.cursor-plugi
   "homepage": "https://github.com/fattain-naime/engineering-docs",
   "repository": "https://github.com/fattain-naime/engineering-docs",
   "license": "MIT",
+  "keywords": [
+    "engineering",
+    "documentation",
+    "architecture",
+    "technical-spec",
+    "api-design",
+    "runbook",
+    "postmortem",
+    "ADR",
+    "threat-model",
+    "deployment"
+  ],
   "skills": "./skills/"
 }
 ```

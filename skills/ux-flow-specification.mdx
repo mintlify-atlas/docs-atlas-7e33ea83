@@ -1,7 +1,7 @@
 ---
-title: "ux-flow-specification skill: user journeys, screen flows, and UI states"
+title: "UX Flow Specification Skill: Screen Flows and States"
 sidebarTitle: "UX Flow"
-description: "Generate a UX flow specification: information architecture, user journeys, screen-by-screen flows, all four UI states (loading/empty/error/success), accessibility notes, and edge case recovery paths."
+description: "Map every screen state (loading, empty, error, success), user journeys, information architecture, and edge case recovery paths before implementation."
 ---
 
 The **ux-flow-specification** skill produces a complete behavioral specification for how a user moves through a product — covering information architecture, user journeys, every screen in the flow, and every state each screen can be in. It deliberately separates behavior and structure from visual styling: specifying "after a failed payment, the user sees an inline error on the same screen with the amount preserved and a retry button" rather than what color that error is. Visual language belongs in `design-system-specification`; this document governs behavior.
@@ -197,7 +197,7 @@ The generated `.engineering-docs/10-ux-flow-specification.md` follows this struc
   </Card>
   <Card title="Feeds into" icon="arrow-up">
     - `design-system-specification` — component needs, interaction patterns, state requirements
-    - `7-system-architecture-document.md` — frontend component structure, API interaction points
+    - `system-architecture-document` — frontend component structure, API interaction points
     - Implementation — screen-by-screen build specification for engineers and AI agents
   </Card>
 </CardGroup>

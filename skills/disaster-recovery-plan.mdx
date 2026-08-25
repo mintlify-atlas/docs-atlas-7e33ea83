@@ -1,7 +1,7 @@
 ---
-title: "disaster-recovery-plan skill: RTO/RPO, backup strategy, and failover runsheets"
+title: "Disaster Recovery Plan — RTO/RPO and failover runsheets"
 sidebarTitle: "Disaster Recovery"
-description: "Produce a disaster recovery plan defining RTO/RPO targets, 3-2-1 backup strategy, per-scenario failover runsheets, and a drill schedule — covering regional outages, ransomware, and data corruption."
+description: "Build a DR plan with RTO/RPO targets, 3-2-1 backup strategy, per-scenario failover runsheets, and drill schedules covering ransomware and regional outages."
 ---
 
 The `disaster-recovery-plan` skill answers the question that a runbook and a deployment plan deliberately do not: what happens when the primary infrastructure itself is gone? This skill handles the catastrophic scenarios — a region is down, a database is corrupted, a backup was never actually tested, or an attacker has encrypted production data. It defines, in dollars and hours, how much data loss and downtime the business has decided is survivable, then works backward to the backup, replication, and failover architecture required to hit those targets. The recovery drill is treated as the document's real test of validity, not the document itself.

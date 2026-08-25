@@ -1,7 +1,7 @@
 ---
-title: "user-personas-behavior skill: personas, JTBD, and success metrics"
+title: "user-personas-behavior: personas, JTBD, and success metrics"
 sidebarTitle: "User Personas"
-description: "Define who a product is for using Jobs-to-Be-Done framing, map user journeys, set leading and lagging success metrics, and produce a concrete analytics event-tracking plan."
+description: "Define who a product is for using JTBD framing, map user journeys, set leading and lagging success metrics, and produce an analytics event-tracking plan."
 ---
 
 The `user-personas-behavior` skill produces the document that keeps a project honest about who it is actually being built for — and how anyone will know, after launch, whether it worked. Technical documents in the Engineering Docs pipeline specify *what* the system does; this skill specifies *who* needs it to do that and *why*, using the Jobs-to-Be-Done framework rather than shallow demographic labels. It then defines the success metrics and the concrete analytics events required to measure them, so "is this working?" has a data-backed answer instead of an opinion after launch.
@@ -140,7 +140,7 @@ All questions are delivered one at a time via tool calls with multiple-choice op
   Accessibility personas influence flow design (keyboard tab order, focus management, error recovery) — not just visual design.
 </Accordion>
 
-## The 5-Phase Generation Process
+## The 6-Phase Generation Process
 
 <Steps>
   <Step title="Phase 1: Socratic Clarification (Mandatory Interview)">
@@ -157,6 +157,9 @@ All questions are delivered one at a time via tool calls with multiple-choice op
   </Step>
   <Step title="Phase 5: Analytics and Event Tracking Plan (60 min)">
     For each metric, specify the exact event name, trigger condition, properties captured, and which metric it feeds. Include implementation notes: analytics platform choice, identity resolution, event delivery (client-side vs. server-side), data warehouse, and consent/privacy handling.
+  </Step>
+  <Step title="Phase 6: Revision (After User Review)">
+    Apply requested changes, check for conflicts with prior documents, re-run consistency check, update metadata, and confirm with user.
   </Step>
 </Steps>
 
@@ -227,5 +230,3 @@ Before marking this document as `final`, verify:
 - [ ] The analytics event tracking plan specifies exact event names, trigger conditions, properties, and which metric each event feeds
 - [ ] Persona priority ranking is declared with rationale, providing a deterministic tie-breaker for design decisions
 - [ ] At least one validation criterion is defined for each persona explaining how post-launch data will confirm or revise the hypothesis
-- [ ] At least one persona includes an accessibility dimension
-- [ ] Negative personas are defined to prevent scope creep

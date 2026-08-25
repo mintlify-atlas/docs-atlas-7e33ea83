@@ -1,13 +1,13 @@
 ---
-title: "deployment-plan skill: release strategy, go/no-go gate, and rollback procedure"
+title: "deployment-plan: strategy, go/no-go gate, and rollback"
 sidebarTitle: "Deployment Plan"
-description: "Invoke the deployment-plan skill to produce a production deployment runsheet covering release strategy, go/no-go checklist, monitoring plan, rollback steps, and sign-off."
+description: "Produce a deployment runsheet covering strategy selection, go/no-go checklist, monitoring thresholds, rollback steps, and sign-off. Always-core skill."
 ---
 
 The `deployment-plan` skill transforms a production deployment from a high-anxiety event into a controlled, repeatable, and reversible procedure. For any service release or infrastructure change, it selects the right deployment strategy — Direct, Rolling, Blue-Green, Canary, or Feature Flag — based on your risk profile and infrastructure, writes the step-by-step execution runsheet with exact commands, defines measurable go/no-go criteria, specifies post-deployment monitoring thresholds, and documents the complete rollback procedure before a single step is executed. This is an always-core skill: DORA research shows that organisations with documented deployment plans deploy more frequently and recover more quickly from failures.
 
 <Info>
-  **Type:** Workflow &nbsp;·&nbsp; **Estimated time:** 2–4 hours &nbsp;·&nbsp; **Standards:** DORA metrics, ITIL change management, blue-green/canary deployment patterns &nbsp;·&nbsp; **Output file:** `16-deployment-plan.md` &nbsp;·&nbsp; **Inclusion:** Always-core — every non-trivial production release
+  **Type:** Workflow &nbsp;·&nbsp; **Estimated time:** 2–4 hours &nbsp;·&nbsp; **Standards:** DORA metrics, blue-green/canary/rolling deployment strategies &nbsp;·&nbsp; **Output file:** `16-deployment-plan.md` &nbsp;·&nbsp; **Inclusion:** Always-core — every non-trivial production release
 </Info>
 
 ## Best for

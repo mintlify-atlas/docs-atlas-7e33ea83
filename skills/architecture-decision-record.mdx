@@ -1,7 +1,7 @@
 ---
-title: "architecture-decision-record skill: immutable ADR log in MADR format"
+title: "Architecture Decision Record Skill: Immutable MADR Format"
 sidebarTitle: "ADR"
-description: "Create a single immutable Architecture Decision Record capturing why a significant technical choice was made, what alternatives were evaluated, and what the consequences are — in MADR format."
+description: "Create an immutable Architecture Decision Record: context, decision, evaluated alternatives with rejection reasons, and consequences — in MADR format."
 ---
 
 The `architecture-decision-record` skill produces a single, permanent Architecture Decision Record that captures why a significant technical choice was made, what alternatives were evaluated and rejected, and what the known consequences are. ADRs are **immutable by design** — once accepted, they are never edited, only superseded by a new ADR. This skill can be invoked at any point in the engineering lifecycle, not just during scheduled phases.
@@ -91,14 +91,13 @@ The history of changed minds is as valuable as the decisions themselves. Silent 
 ### ADR lifecycle
 
 ```
-Proposed → Accepted → Deprecated → (no further state)
-                    ↘ Superseded by ADR-NNN → (new ADR)
+Proposed → Accepted → (Deprecated) → (Superseded by ADR-NNN)
 ```
 
 - **Proposed** — Under discussion. May still change.
 - **Accepted** — Binding. Implementation should follow this decision.
-- **Deprecated** — The decision is outdated but not actively reversed. No replacement exists.
-- **Superseded** — A newer ADR (referenced by number) replaces this one.
+- **Deprecated** — The decision is outdated but not actively reversed.
+- **Superseded** — A newer ADR (referenced) replaces this one.
 
 ### MADR format
 

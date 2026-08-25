@@ -67,7 +67,7 @@ This method copies every plugin file directly to `~/.claude/plugins/engineering-
 
   <Step title="Verify the install path">
     The installer prints the full destination path as it runs. Confirm files landed in:
-    ```
+    ```text
     ~/.claude/plugins/engineering-docs/
     ```
   </Step>
@@ -82,7 +82,7 @@ This method copies every plugin file directly to `~/.claude/plugins/engineering-
 
 When you use the `--claude` flag (or methods 1 / 2), the following structure is copied to `~/.claude/plugins/engineering-docs/`:
 
-```
+```text
 engineering-docs/
 ├── .claude-plugin/
 │   ├── plugin.json          ← Plugin manifest (name, version, author, keywords)
@@ -126,7 +126,19 @@ The `.claude-plugin/plugin.json` manifest that Claude Code reads:
   },
   "homepage": "https://github.com/fattain-naime/engineering-docs",
   "repository": "https://github.com/fattain-naime/engineering-docs",
-  "license": "MIT"
+  "license": "MIT",
+  "keywords": [
+    "engineering",
+    "documentation",
+    "architecture",
+    "technical-spec",
+    "api-design",
+    "runbook",
+    "postmortem",
+    "ADR",
+    "threat-model",
+    "deployment"
+  ]
 }
 ```
 

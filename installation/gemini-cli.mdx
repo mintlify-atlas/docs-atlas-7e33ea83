@@ -1,7 +1,7 @@
 ---
 title: "Install Engineering Docs in Gemini CLI"
 sidebarTitle: "Gemini CLI"
-description: "Install all 22 engineering skills in Gemini CLI using the official extensions command, the --gemini flag, a manual git clone, or the cross-platform setup script."
+description: "Install all 22 engineering skills in Gemini CLI via the official extensions command, the --gemini flag, a git clone, or the cross-platform setup script."
 ---
 
 Engineering Docs ships a `gemini-extension.json` manifest at `integrations/plugins/gemini-extension.json`, making it a first-class Gemini CLI extension. The extension adds all 22 documentation skills to Gemini CLI, wires the `GEMINI.md` context file for session-level instructions, and sits in the standard global extensions directory at `~/.gemini/config/plugins/engineering-docs/`. There are four supported installation methods.
@@ -32,7 +32,7 @@ The `--gemini` flag (short alias `-g`) copies the full plugin tree to the global
 
   <Step title="Confirm the install path">
     Files are copied to:
-    ```
+    ```text
     ~/.gemini/config/plugins/engineering-docs/
     ```
     The installer prints this path and confirms success.
@@ -91,7 +91,7 @@ The `contextFileName` field tells Gemini CLI to load `GEMINI.md` as session-leve
 
 The standard install copies the full plugin tree to `~/.gemini/config/plugins/engineering-docs/`:
 
-```
+```text
 engineering-docs/
 ├── skills/         ← 22 SKILL.md files (core documentation skills)
 ├── agents/         ← 4 custom agent definitions
@@ -110,7 +110,7 @@ engineering-docs/
 
 After installation, start a new Gemini CLI session and ask:
 
-```
+```text
 I want to build a new SaaS product. Where do I start?
 ```
 

@@ -1,7 +1,7 @@
 ---
-title: "Cross-document consistency: how Engineering Docs keeps your blueprint coherent"
+title: "Cross-document consistency checks in Engineering Docs"
 sidebarTitle: "Consistency"
-description: "How Engineering Docs checks entity names, architectural decisions, API surfaces, and terminology for drift across your full document set — incrementally and as a final pass."
+description: "How Engineering Docs catches entity, decision, and terminology drift across your document set — with incremental checks and a final completeness pass."
 ---
 
 A blueprint is only as useful as it is internally consistent. When the database design calls a table `user_accounts` but the API design treats the resource as `customers`, and the security threat model references `User`, a developer picking up the project cold — or an AI agent starting a new session — faces immediate ambiguity. Engineering Docs addresses this with consistency checks that run after every document is produced and again as a final pass across the complete set, catching mismatches when they are cheap to fix rather than after they have compounded across five downstream documents.

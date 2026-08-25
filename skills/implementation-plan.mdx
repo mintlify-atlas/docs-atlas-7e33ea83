@@ -1,7 +1,7 @@
 ---
-title: "implementation-plan skill: dependency-ordered build sequence with phase gates"
+title: "implementation-plan: phased build sequence and phase gates"
 sidebarTitle: "Implementation Plan"
-description: "Invoke the implementation-plan skill to produce a phased, dependency-ordered build sequence with Definition of Ready, Definition of Done, and verification steps per phase."
+description: "Produce a dependency-ordered build sequence with Definition of Ready, Definition of Done, and concrete verification steps per phase. Always-core skill."
 ---
 
 The `implementation-plan` skill produces the document that sits between your architecture and your first commit: the ordered build sequence. It takes your existing system architecture, technical specification, and project plan and sequences them into dependency-driven phases, each with an explicit Definition of Ready, Definition of Done, and a concrete verification step that proves the phase is complete rather than merely written. This is an always-core skill because most implementation failures are ordering failures — building UI before the API contract is stable, building features before the auth foundation exists, integrating a payment provider before the data model that records its results is finalised. The output is precise enough for a human team or an AI coding agent to execute phase by phase without stopping to ask what comes next.

@@ -1,7 +1,7 @@
 ---
-title: "admin-access-control-specification skill: RBAC matrix, audit logging, break-glass"
+title: "Access Control Specification Skill: RBAC and Audit"
 sidebarTitle: "Access Control"
-description: "Generate a complete access control spec: role inventory, permission matrix with zero blank cells, ABAC rules, audit logging, separation of duties, break-glass procedure, and permission testing strategy."
+description: "Define who can do what: RBAC role inventory, zero-blank permission matrix, ABAC rules, audit logging, separation of duties, and break-glass procedures."
 ---
 
 The **admin-access-control-specification** skill produces the specification that defines who inside an organization can do what, how that is enforced, how every privileged action is logged, and what happens when access is needed outside the normal process. Nearly every real system ends up with more than one privilege level — and nearly every serious insider security incident traces back to a permission that was never explicitly decided, just implemented ad hoc as `if user.is_admin`. This skill applies RBAC design, the principle of least privilege, separation of duties, and break-glass emergency procedures to define the complete admin surface before it is built.

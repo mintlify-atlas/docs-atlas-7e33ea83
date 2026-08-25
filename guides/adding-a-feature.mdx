@@ -1,7 +1,7 @@
 ---
-title: "Add a feature to an existing project using Engineering Docs brownfield mode"
+title: "Add a feature to an existing project with Engineering Docs"
 sidebarTitle: "Adding a Feature"
-description: "How Engineering Docs detects an existing codebase, limits scope to the relevant skills, and appends new documents without touching anything already written."
+description: "How Engineering Docs detects an existing codebase, scopes to relevant skills only, and appends new numbered documents without overwriting prior ones."
 ---
 
 Engineering Docs' **Brownfield Mode (Mode B)** is designed for one of the most common engineering situations: you already have a running system, and you need to add something to it. Rather than re-running the full business-concept-to-deployment pipeline, the orchestrator reads your existing context, identifies only the skills relevant to the new feature, and appends new numbered documents to your existing `.engineering-docs/` set — never overwriting anything.
@@ -151,7 +151,7 @@ Here's a complete walkthrough using the scenario of adding a loyalty program to 
   <Step title="Documents append to the existing set">
     New documents are written with the **next available sequence numbers**, continuing the existing set:
 
-    ```
+    ```text
     .engineering-docs/
       index.md                          ← Updated to include new documents
       1-business-plan.md                ← Untouched
@@ -211,7 +211,7 @@ When a new feature **partially replaces** an earlier document (e.g., the databas
   <Tab title="Archive and replace">
     If the new document truly supersedes the old one — for example, a complete schema overhaul — the orchestrator moves the old file to `.engineering-docs/archive/` with a timestamp suffix:
 
-    ```
+    ```text
     .engineering-docs/
       archive/
         8-database-design.md.2024-06-01  ← Archived original
